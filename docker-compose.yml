@@ -1,0 +1,35 @@
+services:
+  agent:
+    build: .
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    depends_on:
+      - qdrant
+    command: bash -c "uvicorn agent.api:app --host 0.0.0.0 --port 8001"
+    ports:
+      - "8001:8001"
+      - "8501:8501"
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    command: ["./qdrant", "--config-path", "config/qdrant.yaml"]
+    volumes:
+      - ./vector_db:/qdrant/storage
+      - ./config/qdrant.yaml:/qdrant/config/qdrant.yaml
+      - ./config/qdrant.yaml:/qdrant/config/config.yaml
+      - ./config/qdrant.yaml:/qdrant/config/production.yaml
+      - ./config/qdrant.yaml:/qdrant/config/development.yaml
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "1"
+        max-size: "10m"
+    deploy:
+      resources:
+        limits:
+          memory: 10Gb

@@ -1,0 +1,51 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/operation-id: 192ace4b-cd45-42e9-becd-a53fb1a20bd4
+  labels:
+    cloud.googleapis.com/location: europe-west10
+  name: immigration-platform-ai-chat
+  namespace: '789312946153'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '100'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 449.0.0
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        client.knative.dev/nonce: cwnhdidgtw
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 80
+      containers:
+      - image: europe-west10-docker.pkg.dev/cap-govtech-p20-demo/immigration-platform/immigration-platform-ai-chat:1.0.0
+        ports:
+        - containerPort: 8501
+          name: http1
+        env:
+        - name: QDRANT_API_KEY
+          value: TO_BE_SET
+        - name: QDRANT_URL
+          value: https://qdrant-hb5tkjl32a-oe.a.run.app
+        - name: QDRANT_PORT
+          value: 443                    
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8501
+          timeoutSeconds: 240
+      serviceAccountName: 789312946153-compute@developer.gserviceaccount.com
+      timeoutSeconds: 300
+  traffic:
+  - latestRevision: true
+    percent: 100

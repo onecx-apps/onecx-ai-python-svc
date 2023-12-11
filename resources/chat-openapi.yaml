@@ -1,0 +1,121 @@
+openapi: 3.0.0
+info:
+  title: ChatBotRestApi
+  version: 1.0.1
+paths:
+  /chat:
+    post:
+      operationId: chatbotapi.post_chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageDTO'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageDTO'
+  /conversation/{conversationId}:
+    get:
+      operationId: chatbotapi.get_conversation
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDTO'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              example:
+                error: "Conversation not found"                
+  /startConversation:
+    post:
+      operationId: chatbotapi.post_startConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                conversation_type:
+                  type: string
+              required:
+                - conversation_type
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDTO'
+  /uploadDocuments/{conversationId}:
+    post:
+      operationId: chatbotapi.post_uploadDocuments
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentDTO'
+      responses:
+        '200':
+          description: Successful response
+components:
+  schemas:
+    ChatMessageDTO:
+      type: object
+      properties:
+        conversationId:
+          type: string
+        correlationId:
+          type: string
+        message:
+          type: string
+          maxLength: 10000
+        type:
+          type: string
+          enum: [SYSTEM, USER, ACTION]
+        creationDate:
+          type: integer
+          format: int64
+    ConversationDTO:
+      type: object
+      properties:
+        conversationId:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageDTO'
+        conversationType:
+          type: string
+          enum: [CHANNELING, Q_AND_A]
+    DocumentDTO:
+      type: object
+      properties:
+        content:
+          type: string
+          format: byte
+          description: Base64 encoded document content
