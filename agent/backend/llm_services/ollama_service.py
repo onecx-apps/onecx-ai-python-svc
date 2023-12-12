@@ -97,8 +97,8 @@ class OllamaLLM(BaseLLM):
 
         raw_mode = os.environ.get('OLLAMA_RAW_MODE', default = "False").lower() in ['true']
 
-        response = self.generate_request(url_ollama_generateEndpoint="http://ollama.one-cx.org:80/api/generate",
-                                        model=os.environ.get('OLLAMA_MODEL'),
+        response = self.generate_request(url_ollama_generateEndpoint="http://" + OLLAMA_URL + ":" + OLLAMA_PORT+"/api/generate",
+                                        model=OLLAMA_MODEL,
                                         full_prompt=prompt)
 
         # response = llm.generate(
