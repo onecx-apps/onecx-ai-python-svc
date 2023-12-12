@@ -97,7 +97,7 @@ class OllamaLLM(BaseLLM):
 
         raw_mode = os.environ.get('OLLAMA_RAW_MODE', default = "False").lower() in ['true']
 
-        response = self.generate_request(url_ollama_generateEndpoint="http://" + OLLAMA_URL + ":" + OLLAMA_PORT+"/api/generate",
+        response = self.generate_request(url_ollama_generateEndpoint=f"http://{OLLAMA_URL}:{OLLAMA_PORT}/api/generate",
                                         model=OLLAMA_MODEL,
                                         full_prompt=prompt)
 
@@ -175,6 +175,9 @@ class OllamaLLM(BaseLLM):
 
     def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str):
         url = url_ollama_generateEndpoint
+
+        logger.info(f"URL: {url}, Model: {model}")
+
         headers = {"Content-Type": "application/json"}
         data = {
             "model": model,
