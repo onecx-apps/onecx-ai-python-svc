@@ -1,8 +1,7 @@
 import os
-
+import requests
 from omegaconf import DictConfig
 from agent.utils.configuration import load_config
-
 from agent.utils.utility import replace_multiple_whitespaces
 from loguru import logger
 from langchain.retrievers import ContextualCompressionRetriever
@@ -16,7 +15,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTex
 from typing import List, Optional, Tuple
 from langchain.embeddings import SentenceTransformerEmbeddings
 from dotenv import load_dotenv
-
 from agent.backend.qdrant_service import get_db_connection
 
 load_dotenv()
@@ -140,25 +138,22 @@ class DocumentService():
 
         logger.debug(f"\nNumber of documents: {len(docs)}")
 
-
         if docs is not None and len(docs) > 0:
             for element in docs:
                 document, score = element
-                logger.debug(f"\n Score {score}")
+                logger.debug(f"\n Document found with score: {score}")
                 logger.debug(replace_multiple_whitespaces(document.page_content))
 
 
-        logger.info("SUCCESS: Documents found after similarity_search_with_score.")
-        #logger.info(f"These are the docs found after similarity_search_with_score: {docs}")
+        logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
         if os.environ.get('ACTIVATE_RERANKER') == "True":
             embedding = self.embedding_model
             filtered_docs = [t[0] for t in docs]
             retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=os.environ.get('QDRANT_API_KEY'), url=os.environ.get('QDRANT_URL'), collection_name="temp_ollama").as_retriever()
 
-            #cohere multi lang rerank model only supports none-english documents
             rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
-            splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=0)
+            splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
             redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
             relevant_filter = EmbeddingsFilter(embeddings=embedding)
             pipeline_compressor = DocumentCompressorPipeline(
@@ -168,9 +163,15 @@ class DocumentService():
             compressed_docs = compression_retriever1.get_relevant_documents(query)
 
             for docu in compressed_docs:
-                logger.info(f"These are the docs found after reranking: {replace_multiple_whitespaces(docu.page_content)}") 
+                logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")
+
+            #Delete the temporary qdrant collection which is used for the base retriever
+            url = f"{os.environ.get('QDRANT_URL')}:{os.environ.get('QDRANT_PORT')}/collections/temp_ollama"
+            headers = {"Content-Type": "application/json", "api-key": os.environ.get('QDRANT_API_KEY')}
+            requests.delete(url, headers=headers)
 
             return compressed_docs
         else:
+            #Logic for none-reranking needs to be implemented here
             filtered_docs = [t[0] for t in docs]
             return filtered_docs

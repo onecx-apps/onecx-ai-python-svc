@@ -6,19 +6,7 @@ from omegaconf import DictConfig
 
 class BaseLLM(ABC):
     @abstractmethod
-    def summarize_text(self, text: str, cfg: DictConfig) -> str:
-        """Summarizes the given text using the LLM API.
-
-        Args:
-            text (str): The text to be summarized.
-
-        Returns:
-            str: The summary of the text.
-        """
-        pass
-
-    @abstractmethod
-    def send_chat_completion(self, text: str, query: str, cfg: DictConfig, conversation_type: str, messages: any) -> str:
+    def send_chat_completion(self, text: str, query: str, conversation_type: str, messages: any) -> str:
         """Sent completion request to LLM API.
 
         Args:
