@@ -53,13 +53,8 @@ def generate_prompt(prompt_name: str, text: str, query: str = "", system: str = 
         FileNotFoundError: If the specified prompt file cannot be found.
     """
 
-    ### uses no template creation in svc, instead whole template needs to be provided as prompt text and OLLAMA_RAW_MODE needs to be True
-    if os.environ.get('RAW_PROMPT', default = "False") == "True":
-        logger.info(f"DEBUG: using raw input for llm without any template ")
-        prompt_text = query
-
     ### if False template of ollama is used, which is defined in Modelfile. otherwise it will use template .
-    elif os.environ.get('OLLAMA_RAW_MODE', default = "False") == "False":
+    if os.environ.get('OLLAMA_RAW_MODE', default = "False") == "False":
         logger.info(f"DEBUG: using simple prompt text with context and query only ")
         prompt_text = " <INPUT> "+text+" </INPUT> "+query
     
