@@ -99,8 +99,7 @@ class OllamaLLM(BaseLLM):
 
         response = self.generate_request(url_ollama_generateEndpoint="http://ollama.one-cx.org:80/api/generate",
                                         model=os.environ.get('OLLAMA_MODEL'),
-                                        full_prompt=prompt,
-                                        raw_mode=raw_mode)
+                                        full_prompt=prompt)
 
         # response = llm.generate(
         #     messages=[messagesBaseFormat],        
@@ -174,15 +173,14 @@ class OllamaLLM(BaseLLM):
         return answer, meta_data
 
 
-    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str, raw_mode: str):
+    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str):
         url = url_ollama_generateEndpoint
         headers = {"Content-Type": "application/json"}
         data = {
             "model": model,
             "template": full_prompt,
             "stream": False,
-            "options": {"stop": ["<|im_start|>", "<|im_end|>"]},
-            "raw": raw_mode
+            "options": {"stop": ["<|im_start|>", "<|im_end|>"]}
         }
 
         response = requests.post(url, json=data, headers=headers)
