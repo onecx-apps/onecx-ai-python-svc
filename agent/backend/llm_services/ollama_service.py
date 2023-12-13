@@ -56,12 +56,9 @@ class OllamaLLM(BaseLLM):
                         else SystemMessage(content=m["content"], additional_kwargs={})
                         for m in messages]
 
-        raw_mode = os.environ.get('OLLAMA_RAW_MODE', default = "False").lower() in ['true']
-
         response = self.generate_request(url_ollama_generateEndpoint="http://" + OLLAMA_URL + ":" + OLLAMA_PORT + "/api/generate",
                                         model=ollama_model,
-                                        full_prompt=prompt,
-                                        raw_mode=raw_mode)
+                                        full_prompt=prompt)
         
         return response
 
@@ -103,7 +100,7 @@ class OllamaLLM(BaseLLM):
         return answer, meta_data
 
 
-    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str, raw_mode: str):
+    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str):
         """Generates a request to ollama.
 
         Args:
@@ -121,8 +118,7 @@ class OllamaLLM(BaseLLM):
             "model": model,
             "template": full_prompt,
             "stream": False,
-            "options": {"stop": ["<|im_start|>", "<|im_end|>"]},
-            "raw": raw_mode
+            "options": {"stop": ["<|im_start|>", "<|im_end|>"]}
         }
 
         response = requests.post(url, json=data, headers=headers)
