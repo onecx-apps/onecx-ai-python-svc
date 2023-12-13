@@ -6,11 +6,10 @@ from ..data_model.chatbot_model import DocumentDTO, UploadFileDTO
 from loguru import logger
 from typing import List
 from ..backend.cloud.cloud_service_factory import CloudServiceFactory
-
 from agent.dependencies import document_service
 
-document_router = APIRouter(tags=["document"])
 
+document_router = APIRouter(tags=["document"])
 cloud_service = CloudServiceFactory(os.getenv("CLOUD_PROVIDER"))
 local_file_path = "resources/"
 

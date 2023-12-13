@@ -120,3 +120,5 @@ aiofiles==23.2.1
 sentence-transformers==2.2.2
 simsimd==3.5.5
 cohere==4.35
+deprecated==1.2.14 
+wrapt==1.16.0

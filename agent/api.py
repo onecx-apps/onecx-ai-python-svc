@@ -3,10 +3,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from loguru import logger
-
 from agent.backend.document_service import DocumentService
-
-#from agent.backend.qdrant_service import get_qdrant_client
 from .routes import chat_router, document_router
 
 # add file logger for loguru
@@ -57,6 +54,3 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
-
-# initialize the databases
-#get_qdrant_client()

@@ -21,7 +21,6 @@ import logging
 
 from deprecated import deprecated
 
-#from agent.backend.qdrant_service import get_qdrant_client
 
 
 logging.basicConfig(level=logging.INFO)

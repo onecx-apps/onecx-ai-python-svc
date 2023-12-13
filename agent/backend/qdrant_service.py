@@ -1,36 +1,12 @@
 import os
-
 from langchain.vectorstores import Qdrant
 from langchain.schema.embeddings import Embeddings
-
 from qdrant_client import QdrantClient, models
-
 from agent.utils.configuration import load_config
-
 from loguru import logger
 from omegaconf import DictConfig
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
-
-def get_qdrant_client() -> QdrantClient:
-    """Initializes the OpenAi vector db.
-
-    Args:
-        cfg (DictConfig): Configuration from the file
-    """
-    qdrant_client = QdrantClient(os.getenv("QDRANT_URL"), port=os.getenv("QDRANT_PORT"), api_key=os.getenv("QDRANT_API_KEY"))
-  
-    try:
-
-        collection_name = "ollama"
-        qdrant_client.get_collection(collection_name)
-        logger.info(f"SUCCESS: Collection {collection_name} already exists.")
-    except Exception:
-        qdrant_client.recreate_collection(
-            collection_name=collection_name,
-            vectors_config=models.VectorParams(size=4096, distance=models.Distance.COSINE),
-        )
-        logger.info(f"SUCCESS: Collection {collection_name} created.")
 
 @load_config(location="config/db.yml")
 def get_db_connection(cfg: DictConfig, embedding_model: Embeddings) -> Qdrant:

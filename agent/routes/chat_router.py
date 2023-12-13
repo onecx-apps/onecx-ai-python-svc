@@ -5,12 +5,12 @@ from fastapi import APIRouter, HTTPException, Body
 from ..data_model.chatbot_model import ChatMessageDTO, ConversationDTO, MessageType, ConversationType
 import agent.data_model.response_model as Response
 from loguru import logger
-
 from agent.dependencies import document_service, llm
 
-chat_router = APIRouter(tags=["chat"])
 
+chat_router = APIRouter(tags=["chat"])
 chatConversationMemory = []
+
 def get_chat_by_conversation_id(conversationId):
     for conversation in chatConversationMemory:
         if conversation["conversationId"] == conversationId:
