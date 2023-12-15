@@ -148,9 +148,8 @@ class DocumentService():
             self.vector_store.add_texts(texts=text_list, metadatas=metadata_list)
 
         logger.info("SUCCESS: Text embedded.")
-        
-    @load_config(location="config/db.yml")    
-    def search_documents(self, cfg: DictConfig, query: str, amount: int, collection_name: Optional[str] = None) -> List[Tuple[Document, float]]:
+         
+    def search_documents(self, query: str, amount: int, collection_name: Optional[str] = None) -> List[Tuple[Document, float]]:
         """Searches the documents in the Qdrant DB with a specific query.
 
         Args:
