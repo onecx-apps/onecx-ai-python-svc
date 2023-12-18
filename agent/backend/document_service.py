@@ -27,6 +27,7 @@ class DocumentService():
     def __init__(self):
         self.embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
         self.vector_store = get_db_connection(embedding_model=self.embedding_model)
+        self.memory_store = InMemoryStore()
         
     def embed_directory(self, dir: str) -> None:
         """Embeds the documents in the given directory in the llama2 database.
@@ -61,7 +62,7 @@ class DocumentService():
         )
 
         # The storage layer for the parent documents
-        store = InMemoryStore()
+        store = self.memory_store
 
         # retriever for a small_to_big chunking strategy
         small_to_big_retriever = ParentDocumentRetriever(
@@ -159,6 +160,34 @@ class DocumentService():
             List[Tuple[Document, float]]: A list of search results, where each result is a tuple
             containing a Document object and a float score.
         """
+        length_function = len
+
+        # This text splitter is used to create the parent documents
+        parent_splitter = RecursiveCharacterTextSplitter(
+            separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],
+            chunk_size=1024,
+            chunk_overlap=50,
+            length_function=length_function,
+        )
+
+        # This text splitter is used to create the child documents
+        child_splitter = RecursiveCharacterTextSplitter(
+            separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],
+            chunk_size=512,
+            chunk_overlap=25,
+            length_function=length_function,
+        )
+
+        # The storage layer for the parent documents
+        store = self.memory_store
+
+        # retriever for a small_to_big chunking strategy
+        small_to_big_retriever = ParentDocumentRetriever(
+            vectorstore=self.vector_store,
+            docstore=store,
+            child_splitter=child_splitter,
+            parent_splitter=parent_splitter,
+        )
 
 
 
@@ -169,45 +198,18 @@ class DocumentService():
         if docs is not None and len(docs) > 0:
             for element in docs:
                 document, score = element
-                logger.debug(f"\n Document found with score: {score}")
-                logger.debug(replace_multiple_whitespaces(document.page_content))
+                logger.debug(f"\n Document found with score: {score} \n {replace_multiple_whitespaces(document.page_content)}")
+                
 
 
         logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
-        if os.environ.get('ACTIVATE_RERANKER') == "True":
+        if bool(os.environ.get('ACTIVATE_RERANKER')):
+            logger.info("SUCCESS IAM IN RERANKER @@@@@@.")
             embedding = self.embedding_model
             filtered_docs = [t[0] for t in docs]
             retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=os.environ.get('QDRANT_API_KEY'), url=os.environ.get('QDRANT_URL'), collection_name="temp_ollama").as_retriever()
 
-            length_function = len
-
-            # This text splitter is used to create the parent documents
-            parent_splitter = RecursiveCharacterTextSplitter(
-                separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],
-                chunk_size=1024,
-                chunk_overlap=50,
-                length_function=length_function,
-            )
-
-            # This text splitter is used to create the child documents
-            child_splitter = RecursiveCharacterTextSplitter(
-                separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],
-                chunk_size=512,
-                chunk_overlap=25,
-                length_function=length_function,
-            )
-
-            # The storage layer for the parent documents
-            store = InMemoryStore()
-
-            # retriever for a small_to_big chunking strategy
-            small_to_big_retriever = ParentDocumentRetriever(
-                vectorstore=self.vector_store,
-                docstore=store,
-                child_splitter=child_splitter,
-                parent_splitter=parent_splitter,
-            )
 
             rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
             splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
@@ -216,8 +218,8 @@ class DocumentService():
             pipeline_compressor = DocumentCompressorPipeline(
                 transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
             )
-            compression_retriever = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=small_to_big_retriever)
-            compressed_docs = compression_retriever.get_relevant_documents(query)
+            compression_retriever = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
+            compressed_docs = small_to_big_retriever.get_relevant_documents(query)
 
             for docu in compressed_docs:
                 logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")

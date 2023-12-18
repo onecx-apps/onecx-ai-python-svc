@@ -56,7 +56,7 @@ class OllamaLLM(BaseLLM):
                         else SystemMessage(content=m["content"], additional_kwargs={})
                         for m in messages]
 
-        response = self.generate_request(url_ollama_generateEndpoint=f"http://{OLLAMA_URL}:{OLLAMA_PORT}/api/generate",
+        response = self.generate_request(url_ollama_generateEndpoint=f"{OLLAMA_URL}:{OLLAMA_PORT}/api/generate",
                                         model=ollama_model,
                                         full_prompt=prompt)
         
