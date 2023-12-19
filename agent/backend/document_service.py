@@ -205,21 +205,18 @@ class DocumentService():
         logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
         if bool(os.environ.get('ACTIVATE_RERANKER')):
-            logger.info("SUCCESS IAM IN RERANKER @@@@@@.")
             embedding = self.embedding_model
             filtered_docs = [t[0] for t in docs]
-            retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=os.environ.get('QDRANT_API_KEY'), url=os.environ.get('QDRANT_URL'), collection_name="temp_ollama").as_retriever()
 
-
+            #compressor which does several filtering processes and uses the small to big retriever
             rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
-            splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
             redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
             relevant_filter = EmbeddingsFilter(embeddings=embedding)
             pipeline_compressor = DocumentCompressorPipeline(
-                transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
+                transformers=[redundant_filter, relevant_filter, rerank_compressor]
             )
-            compression_retriever = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
-            compressed_docs = small_to_big_retriever.get_relevant_documents(query)
+            compression_retriever = ContextualCompressionRetriever(base_compressor=pipeline_compressor, base_retriever=small_to_big_retriever)
+            compressed_docs = compression_retriever.get_relevant_documents(query)
 
             for docu in compressed_docs:
                 logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")
