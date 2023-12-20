@@ -119,7 +119,8 @@ class OllamaLLM(BaseLLM):
         headers = {"Content-Type": "application/json"}
         data = {
             "model": model,
-            "template": full_prompt,
+            "prompt": full_prompt,
+            "raw": True,
             "stream": False,
             "options": {"stop": ["<|im_start|>", "<|im_end|>"]}
         }
