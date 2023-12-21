@@ -56,9 +56,10 @@ class OllamaLLM(BaseLLM):
                         else SystemMessage(content=m["content"], additional_kwargs={})
                         for m in messages]
 
-        response = self.generate_request(url_ollama_generateEndpoint=f"http://{OLLAMA_URL}:{OLLAMA_PORT}/api/generate",
+        logger.error(f"Messages Histoy: {messages}")
+        response = self.generate_request(url_ollama_generateEndpoint=f"http://{OLLAMA_URL}:{OLLAMA_PORT}/api/chat",
                                         model=ollama_model,
-                                        full_prompt=prompt)
+                                        full_chat_history=messages)
         
         return response
 
@@ -100,7 +101,7 @@ class OllamaLLM(BaseLLM):
         return answer, meta_data
 
 
-    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str):
+    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_chat_history: any):
         """Generates a request to ollama.
 
         Args:
@@ -119,18 +120,19 @@ class OllamaLLM(BaseLLM):
         headers = {"Content-Type": "application/json"}
         data = {
             "model": model,
-            "prompt": full_prompt,
-            "raw": True,
+            "messages": full_chat_history,
             "stream": False,
             "options": {"stop": ["<|im_start|>", "<|im_end|>"]}
         }
 
         response = requests.post(url, json=data, headers=headers)
+        data = response.json()
 
         if response.status_code == 200:
             logger.debug("HTTP status code 200: Request was successful!")
         else:
             logger.debug(f"Error {response.status_code}: {response.text}")
 
-        return response.json()["response"]
+        return data["message"]["content"]
+
 

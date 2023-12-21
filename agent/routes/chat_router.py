@@ -75,7 +75,7 @@ async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
 async def get_conversation(conversationId: str) -> ConversationDTO:
     # Implement your logic here
 
-    conversation = get_chat_by_conversation_id_filtered(conversationId)
+    conversation = get_chat_by_conversation_id(conversationId)
     
     if  conversation == None:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -92,14 +92,14 @@ async def start_conversation(conversation_type: str = Body(..., embed=True)) -> 
         welcomeMessage= ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message="Hallo ich bin dein Asisstent und führe dich durch den Anmeldeprozess. Wie ist dein Name?", type=MessageType.ASSISTANT, creationDate=int(time.time()))
         start_conversation.append(welcomeMessage)
     if conversation_type == "Q_AND_A":
-        # iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=q_and_a_system_message, type=MessageType.SYSTEM, creationDate=int(time.time()))
-        # start_conversation.append(iniialSystemMessage)
-        welcomeMessage= ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message="Hallo ich bin dein Asisstent für heute! Was möchtest du wissen?(Q&A)", type=MessageType.ASSISTANT, creationDate=int(time.time()))
-        start_conversation.append(welcomeMessage)
+        iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
+        start_conversation.append(iniialSystemMessage)
+        #welcomeMessage= ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="Welcome Message", message="Hallo ich bin dein Asisstent für heute! Was möchtest du wissen?(Q&A)", type=MessageType.ASSISTANT, creationDate=int(time.time()))
+        #start_conversation.append(welcomeMessage)
 
     chatConversationMemory.append({"conversationId": conversation_id_uuid, "history": start_conversation, "conversationType": conversation_type})
 
-    conversation = get_chat_by_conversation_id_filtered(conversation_id_uuid)
+    conversation = get_chat_by_conversation_id(conversation_id_uuid)
     
     if  conversation == None:
         raise HTTPException(status_code=404, detail="Conversation not found")
