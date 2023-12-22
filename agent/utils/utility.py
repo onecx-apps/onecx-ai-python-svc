@@ -53,6 +53,7 @@ def generate_prompt(prompt_name: str, text: str, query: str = "", system: str = 
     """
 
     ### if False template of ollama is used, which is defined in Modelfile. otherwise it will use template .
+    logger.error(os.getenv("OLLAMA_RAW_MODE"))
     if os.environ.get('OLLAMA_RAW_MODE', default = "False") == "False":
         logger.info(f"DEBUG: using simple prompt text with context and query only ")
         prompt_text = " <INPUT> "+text+" </INPUT> "+query

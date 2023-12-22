@@ -41,6 +41,8 @@ class DocumentService():
         Returns:
             None
         """
+        self.vector_store = get_db_connection(embedding_model=self.embedding_model)
+        
         logger.info(f"Logged directory:  {dir}")
         loader = DirectoryLoader(dir, glob="*.pdf", loader_cls=PyPDFLoader)
         length_function = len
@@ -92,6 +94,8 @@ class DocumentService():
         Returns:
             None
         """
+        self.vector_store = get_db_connection(embedding_model=self.embedding_model)
+        
         # split the text at the seperator
         text_list: List = text.split(seperator)
 
@@ -119,6 +123,8 @@ class DocumentService():
         Returns:
             None
         """
+        self.vector_store = get_db_connection(embedding_model=self.embedding_model)
+        
         # iterate over the files in the folder
         for file in os.listdir(folder):
             # check if the file is a .txt or .md file
@@ -160,6 +166,8 @@ class DocumentService():
             List[Tuple[Document, float]]: A list of search results, where each result is a tuple
             containing a Document object and a float score.
         """
+        self.vector_store = get_db_connection(embedding_model=self.embedding_model)
+        
         length_function = len
 
         # This text splitter is used to create the parent documents
