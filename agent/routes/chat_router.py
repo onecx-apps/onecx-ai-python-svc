@@ -37,7 +37,7 @@ def read_root() -> str:
     Returns:
         str: The welcome message.
     """
-    return "Welcome to the BMI Chatbot Backend!"
+    return "Welcome to the Chatbot-Backend!"
 
 
 @chat_router.post("/chat")
@@ -73,8 +73,6 @@ async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
 
 @chat_router.get("/conversation/{conversationId}")
 async def get_conversation(conversationId: str) -> ConversationDTO:
-    # Implement your logic here
-
     conversation = get_chat_by_conversation_id(conversationId)
     
     if  conversation == None:
@@ -86,16 +84,18 @@ async def get_conversation(conversationId: str) -> ConversationDTO:
 async def start_conversation(conversation_type: str = Body(..., embed=True)) -> ConversationDTO:
     conversation_id_uuid = str(uuid.uuid4())
     start_conversation = []
-    if conversation_type == "CHANNELING":
-        # iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=channeling_system_message, type=MessageType.SYSTEM, creationDate=int(time.time()))
-        # start_conversation.append(iniialSystemMessage)
-        welcomeMessage= ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message="Hallo ich bin dein Asisstent und führe dich durch den Anmeldeprozess. Wie ist dein Name?", type=MessageType.ASSISTANT, creationDate=int(time.time()))
-        start_conversation.append(welcomeMessage)
     if conversation_type == "Q_AND_A":
         iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
         start_conversation.append(iniialSystemMessage)
+
+        #If you want to add a welcome message into the message history enable the following:
         #welcomeMessage= ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="Welcome Message", message="Hallo ich bin dein Asisstent für heute! Was möchtest du wissen?(Q&A)", type=MessageType.ASSISTANT, creationDate=int(time.time()))
         #start_conversation.append(welcomeMessage)
+
+    else:
+        #Different system messages for each conversation type can be implemented here. E.g.: channeling.
+        iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
+        start_conversation.append(iniialSystemMessage)
 
     chatConversationMemory.append({"conversationId": conversation_id_uuid, "history": start_conversation, "conversationType": conversation_type})
 

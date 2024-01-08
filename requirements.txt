@@ -122,3 +122,4 @@ simsimd==3.5.5
 cohere==4.35
 deprecated==1.2.14 
 wrapt==1.16.0
+pytest==7.4.4

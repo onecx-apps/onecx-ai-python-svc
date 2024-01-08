@@ -20,6 +20,10 @@ from agent.backend.qdrant_service import get_db_connection
 load_dotenv()
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+ACTIVATE_RERANKER = os.getenv('ACTIVATE_RERANKER')
+QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
+QDRANT_URL = os.getenv('QDRANT_URL')
+QDRANT_PORT = os.getenv('QDRANT_PORT')
 
 class DocumentService():
     def __init__(self):
@@ -124,7 +128,7 @@ class DocumentService():
         logger.info("SUCCESS: Text embedded.")
         
     @load_config(location="config/db.yml")    
-    def search_documents(self, cfg: DictConfig, query: str, amount: int, collection_name: Optional[str] = None) -> List[Tuple[Document, float]]:
+    def search_documents(self, query: str, amount: int) -> List[Tuple[Document, float]]:
         """Searches the documents in the Qdrant DB with a specific query.
 
         Args:
@@ -147,10 +151,10 @@ class DocumentService():
 
         logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
-        if os.environ.get('ACTIVATE_RERANKER') == "True":
+        if ACTIVATE_RERANKER == "True":
             embedding = self.embedding_model
             filtered_docs = [t[0] for t in docs]
-            retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=os.environ.get('QDRANT_API_KEY'), url=os.environ.get('QDRANT_URL'), collection_name="temp_ollama").as_retriever()
+            retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
 
             rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
             splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
@@ -166,8 +170,8 @@ class DocumentService():
                 logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")
 
             #Delete the temporary qdrant collection which is used for the base retriever
-            url = f"{os.environ.get('QDRANT_URL')}:{os.environ.get('QDRANT_PORT')}/collections/temp_ollama"
-            headers = {"Content-Type": "application/json", "api-key": os.environ.get('QDRANT_API_KEY')}
+            url = f"{QDRANT_URL}:{QDRANT_PORT}/collections/temp_ollama"
+            headers = {"Content-Type": "application/json", "api-key": QDRANT_API_KEY}
             requests.delete(url, headers=headers)
 
             return compressed_docs
