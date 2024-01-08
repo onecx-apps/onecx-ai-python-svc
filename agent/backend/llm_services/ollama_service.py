@@ -45,8 +45,9 @@ class OllamaLLM(BaseLLM):
         messages.append({"role": "user", "content": prompt})
         logger.debug(f"Filled prompt before request: {prompt}")
         ollama_model = f"{OLLAMA_MODEL}:{OLLAMA_MODEL_VERSION}" if OLLAMA_MODEL_VERSION else OLLAMA_MODEL
+        ollama_url_with_port = "http://" + f"{OLLAMA_URL}:{OLLAMA_PORT}"
 
-        response = self.generate_request(url_ollama_generateEndpoint=f"http://{OLLAMA_URL}:{OLLAMA_PORT}/api/chat",
+        response = self.generate_request(url_ollama_generateEndpoint=f"{ollama_url_with_port}/api/chat",
                                         model=ollama_model,
                                         full_chat_history=messages)
         
