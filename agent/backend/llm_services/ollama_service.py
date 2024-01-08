@@ -99,6 +99,7 @@ class OllamaLLM(BaseLLM):
         url = url_ollama_generateEndpoint
 
         logger.info(f"URL: {url}, Model: {model}")
+        logger.info(f"Messages in Request: {full_chat_history}")
 
         headers = {"Content-Type": "application/json"}
         data = {
