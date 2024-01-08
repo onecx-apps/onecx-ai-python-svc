@@ -1,122 +1,116 @@
+<br />
+<div align="center">
+  <a href="https://github.com/onecx-apps/onecx-ai-svc">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/9d/Capgemini_201x_logo.svg" alt="Logo" width="200px">
+  </a>
 
-# Conversational Agent
-This is a Rest-Backend for a Conversational Agent, that allows to embedd Documentes, search for them using Semantic Search, to QA based on Documents and do document processing with Large Language Models.
+  <h3 align="center">REST Backend for a Conversational Chat Agent</h3>
 
-
-- [Conversational Agent](#conversational-agent)
-  - [Recent Updates](#recent-updates)
-  - [Quickstart](#quickstart)
-  - [Redoc API Documentation](#redoc-api-documentation)
-  - [Project Description](#project-description)
-  - [Semantic Search](#semantic-search)
-  - [Architecture](#architecture)
-  - [Components](#components)
-  - [Available LLM Backends](#available-llm-backends)
-  - [Deployment](#deployment)
-  - [Secret Management](#secret-management)
-  - [Installation \& Development Backend](#installation--development-backend)
-  - [Development Frontend](#development-frontend)
-  - [Vector Database](#vector-database)
-  - [Qdrant API Key](#qdrant-api-key)
+  <p align="center">
+    An advanced Retrieval Augmented Generation PoC solution for a GenAi Chatbot!
+    <br />
+  </p>
+</div>
 
 
-## Recent Updates
-- Added Qdrant as a vector database.
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#Project-Description">Description</a></li>
+    <li><a href="#RAG-Architecture">Architecture</a></li>
+    <li>
+      <a href="#quickstart">Setup</a>
+    </li>
+    <li><a href="#API-Documentation">API Docs</a></li>
+    <li><a href="#Example-Workflow">Example</a></li>
+    <li><a href="#Roadmap-for-future-improvements">Roadmap</a></li>
+  </ol>
+</details>
+
+
+## Project Description
+This project is a versatile chatbot system designed to integrate seamlessly with various Large Language Models (LLM). Leveraging an advanced Retrieval-Augmented Generation (RAG) architecture, it empowers developers to build intelligent and context-aware chatbots.
+
+Features:
+- Q and A over documents
+- Provides a REST API built with FastAPI for easy integration with other applications.
+- Vector Storage with Qdrant.
+- Advanced RAG methods like reranking and small to big chunking.
+
+Technology Keywords:
+- Python
+- Ollama
+- LangChain
+- HuggingFace
+- Embedding Model
+- Reranking Model
+- FastAPI
+- uvicorn
+- Qdrant
+- Jinja Templating.
+- Docker
+
+
+## RAG Architecture
+<div align="center">
+  <img src="resources/RAG_diagramm.svg" alt="architecture">
+</div>
+
 
 
 ## Quickstart
 
+First of all you have to clone the repo, rename the env-template file into ".env" and fill up the missing values.<br />
+Feel free to ask for support regarding the .env: @davidatcap & @michaelgloeckner<br />
+<br />
+From now on we will assume that this repo will be cloned onto a linux system.<br />
+We will also assume that python 3.10 is already installed.<br />
+Its up to you to use a virtual enviroment like conda for this project.<br />
+<br />
+You can also use the provided docker setup instead of a directly local setup.<br />
+<br />
 
-
-To run the complete system with docker use this command:
-
+For the local setup lets start by installing the python packages on your system or enviroment:
 ```bash
-git clone https://github.com/onecx-apps/onecx-ai-svc.git
-cd onecx-ai-svc
-```
-Create a .env file from the .env-template and set the qdrant api key. For tests just set it to test.
-QDRANT_API_KEY="test"
-
-Then start the system with
-```bash
-  docker compose up -d
-```
-
-Then go to http://127.0.0.1:8001/docs or http://127.0.0.1:8001/redoc to see the API documentation.
-
-
-## Docker build
-
-docker build . -t onecx-ai-svc
-
-
-## Redoc API Documentation
-<!-- # TODO: -->
-
-
-
-## Project Description
-This project is a conversational agent that uses Aleph Alpha Large Language Model to generate responses to user queries. The agent also includes a vector database and a REST API built with FastAPI.
-
-Features
-- Uses Aleph Alpha Large Language Model to generate responses to user queries.
-- Includes a vector database to store and retrieve information.
-- Provides a REST API built with FastAPI for easy integration with other applications.
-- Has a basic gui.
-
-## Semantic Search
-![Semantic Search Architecture](resources/search_flow.png)
-
-Semantic search is an advanced search technique that aims to understand the meaning and context of a user's query, rather than matching keywords. It involves natural language processing (NLP) and machine learning algorithms to analyze and interpret user intent, synonyms, relationships between words, and the structure of content. By considering these factors, semantic search improves the accuracy and relevance of search results, providing a more intuitive and personalized user experience.
-
-## Architecture
-![Semantic Search Architecture](resources/Architecture.png)
-
-## Components
-
-Langchain is a library for natural language processing and machine learning. FastAPI is a modern, fast (high-performance) web framework for building APIs with Python 3.7+ based on standard Python type hints. A Vectordatabase is a database that stores vectors, which can be used for similarity searches and other machine learning tasks.
-
-## Available LLM Backends
-
-- [Aleph Alpha Luminous](https://aleph-alpha.com/)
-
-## Deployment
-
-If you want to use a default token for the LLM Provider you need to create a .env file. Do this by copying the .env-template file and add the necessary api keys.
-
-If you want to build the image on your local machine you can use this command:
-
-```bash
-docker compose up
+pip install -r requirements.txt
 ```
 
-## Secret Management
-
-Two ways to manage your api keys are available, the easiest approach is to sent the api token in the request as the token.
-Another possiblity is to create a .env file and add the api token there.
-
-
-## Development Frontend
-
-To run the Frontend use this command in the root directory of the agent container:
-
+Now get the local vector storage running (as a container preferred):
 ```bash
-poetry run streamlit run gui.py
+docker compose  -f "docker-compose.yml" up -d --build qdrant 
 ```
 
-## Vector Database
+If you want to use a LLM locally you will have to install Ollama and a model.<br />
+Ollama provides an interface which allows you to pull and run several LLMs locally with an REST API.<br />
+Please visit https://ollama.ai/download and follow their instructions.<br />
+This is how you can run a model with Ollama e.g.:
+```bash
+ollama run llama2
+```
 
-Qdrant Dashboard is available at http://QDRANT_URL:QDRANT_PORT/dashboard. There you need to enter the api key.
+Now should be the vector storage and the LLMs running.<br />
+Once these 2 services are running we can go on and start the backend service.
+```bash
+uvicorn agent.api:app --host 0.0.0.0 --port 8001
 
+```
+## API Documentation
+Then you can go to http://127.0.0.1:8001/docs or http://127.0.0.1:8001/redoc to see the API documentation.<br />
+The vector storage can be checked here: http://localhost:6333/dashboard
 
-## Qdrant API Key
-To use the Qdrant API you need to set the correct parameters in the .env file.
-QDRANT_API_KEY is the API key for the Qdrant API in case you use external qdrant
-QDRANT_URL the url of the qdrant
-QDRANT_PORT the http port of qdrant
-And you need to change it in the qdrant.yaml file in the config folder.
+## Example Workflow
+Start a conversation by requesting the /startConversation endpoint with the conversation type "Q_AND_A" in the body.
+Then save the conversation-ID and paste it into the next request to the endpoint /chat.
 
-## Import documents into qdrant from bucket
-GOOGLE_APPLICATION_CREDENTIALS_BASE64=
-DOCUMENTS_BUCKET=bmi-immigration
-call https://localhost:8001/embeddings/importDocuments and import documents which are in the DOCUMENTS_BUCKET bucket.
+<!-- ROADMAP -->
+## Roadmap for future improvements:
+
+- [ ] Combining BM25 Keyword Search and the semantic search results before reranking for diverse context results
+- [ ] Summarizing retrieved context with a LLM call to get the conext more precise
+- [ ] Summarizing message history with a LLM call when it gets too long
+- [ ] Each conversation needs to be able to search over their individual documents
+- [ ] LLM Result Evaluation
+- [ ] Finding a solid open source reranker alternative to cohere
+- [ ] Implement other document importers to receive data from e.g. confluence or scraping data from websites
+
