@@ -65,21 +65,27 @@ class OllamaLLM(BaseLLM):
             Tuple[str, str, Union[Dict[Any, Any], List[Dict[Any, Any]]]]: A tuple containing the answer, the prompt, and the metadata for the documents.
         """
         text = ""
-        # extract the texts and meta data from the documents
-        texts = [replace_multiple_whitespaces(doc.page_content) for doc in documents]
-        text = " ".join(texts)
-        meta_data = [doc.metadata for doc in documents]
-
         answer=""
-        try:
-            # fills the prompt, sends a request and returns the response
-            answer = self.send_chat_completion(text=text, query=query, conversation_type=conversation_type, messages=messages)
+        meta_data=""
+        
+        if documents is not None and len(documents) > 0:
+            # extract the texts and meta data from the documents
 
-        except ValueError as e:
-            logger.error("Error found:")
-            logger.error(e)
-            answer = "Error while processing the completion"
-        logger.debug(f"LLM response: {answer}")
+        
+            texts = [replace_multiple_whitespaces(doc.page_content) for doc in documents]
+            text = " ".join(texts)
+            meta_data = [doc.metadata for doc in documents]
+
+        
+            try:
+                # fills the prompt, sends a request and returns the response
+                answer = self.send_chat_completion(text=text, query=query, conversation_type=conversation_type, messages=messages)
+
+            except ValueError as e:
+                logger.error("Error found:")
+                logger.error(e)
+                answer = "Error while processing the completion"
+            logger.debug(f"LLM response: {answer}")
         
         return answer, meta_data
 

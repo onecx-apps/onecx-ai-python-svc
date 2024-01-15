@@ -191,7 +191,7 @@ class DocumentService():
             List[Tuple[Document, float]]: A list of search results, where each result is a tuple
             containing a Document object and a float score.
         """
-        docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=.7)
+        docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=.85)
 
         logger.debug(f"\nNumber of documents: {len(docs)}")
 
@@ -200,35 +200,37 @@ class DocumentService():
                 document, score = element
                 logger.debug(f"\n Document found with score: {score}")
                 logger.debug(replace_multiple_whitespaces(document.page_content))
+                logger.debug(replace_multiple_whitespaces(document.metadata))
 
 
-        logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
+            logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
-        if ACTIVATE_RERANKER == "True":
-            embedding = self.embedding_model
-            filtered_docs = [t[0] for t in docs]
-            retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
+            if ACTIVATE_RERANKER == "True":
+                embedding = self.embedding_model
+                filtered_docs = [t[0] for t in docs]
+                retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
 
-            rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
-            splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
-            redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
-            relevant_filter = EmbeddingsFilter(embeddings=embedding)
-            pipeline_compressor = DocumentCompressorPipeline(
-                transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
-            )
-            compression_retriever1 = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
-            compressed_docs = compression_retriever1.get_relevant_documents(query)
+                rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
+                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
+                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
+                relevant_filter = EmbeddingsFilter(embeddings=embedding)
+                pipeline_compressor = DocumentCompressorPipeline(
+                    transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
+                )
+                compression_retriever1 = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
+                compressed_docs = compression_retriever1.get_relevant_documents(query)
 
-            for docu in compressed_docs:
-                logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")
+                for docu in compressed_docs:
+                    logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")
 
-            #Delete the temporary qdrant collection which is used for the base retriever
-            url = f"{QDRANT_URL}:{QDRANT_PORT}/collections/temp_ollama"
-            headers = {"Content-Type": "application/json", "api-key": QDRANT_API_KEY}
-            requests.delete(url, headers=headers)
+                #Delete the temporary qdrant collection which is used for the base retriever
+                url = f"{QDRANT_URL}:{QDRANT_PORT}/collections/temp_ollama"
+                headers = {"Content-Type": "application/json", "api-key": QDRANT_API_KEY}
+                requests.delete(url, headers=headers)
 
-            return compressed_docs
-        else:
-            #Logic for none-reranking needs to be implemented here
-            filtered_docs = [t[0] for t in docs]
-            return filtered_docs
+                return compressed_docs
+            else:
+                #Logic for none-reranking needs to be implemented here
+                filtered_docs = [t[0] for t in docs]
+                return filtered_docs
+        return None
