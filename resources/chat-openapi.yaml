@@ -96,7 +96,7 @@ components:
           maxLength: 10000
         type:
           type: string
-          enum: [SYSTEM, USER, ACTION]
+          enum: [ASSISTANT, SYSTEM, USER, ACTION]
         creationDate:
           type: integer
           format: int64
