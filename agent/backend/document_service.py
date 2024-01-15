@@ -180,7 +180,8 @@ class DocumentService():
             self.vector_store.add_texts(texts=text_list, metadatas=metadata_list)
 
         logger.info("SUCCESS: Text embedded.")
-            
+
+
     def search_documents(self, query: str, amount: int) -> List[Tuple[Document, float]]:
         """Searches the documents in the Qdrant DB with a specific query.
 
@@ -200,7 +201,7 @@ class DocumentService():
                 document, score = element
                 logger.debug(f"\n Document found with score: {score}")
                 logger.debug(replace_multiple_whitespaces(document.page_content))
-                logger.debug(replace_multiple_whitespaces(document.metadata))
+                logger.debug(document.metadata)
 
 
             logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
