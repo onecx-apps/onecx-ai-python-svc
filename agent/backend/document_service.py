@@ -29,30 +29,48 @@ QDRANT_URL = os.getenv('QDRANT_URL')
 QDRANT_PORT = os.getenv('QDRANT_PORT')
 
 
-def extract_procedures_from_issue(text_list: list[str], metadata_list: list[dict]):
-    qdrant_data = []
-    qdrant_metadata = []
-    for text, metadata in zip(text_list, metadata_list):
-        json_dict: dict = json.loads(text)
+def extract_procedures_from_issue(documents):
+    """
+    Transform the given list of langchain_core Document objects into a new list of documents.
 
-        # Extract relevant information for issue
-        issue_data = copy.deepcopy(json_dict)
-        issue_data.pop("procedures", None)
-        issue_metadata = metadata.copy()
-        issue_metadata["type"] = "issue"
-        issue_metadata["issueId"] = issue_data["issueId"]
-        qdrant_data.append(json.dumps(issue_data))
-        qdrant_metadata.append(issue_metadata)
+    Args:
+        documents (list of Document): List of langchain_core Document objects.
 
-        # Extract relevant information for each procedure
-        for procedure in json_dict["procedures"]:
-            qdrant_data.append(json.dumps(procedure))
-            procedure_metadata = metadata.copy()
-            procedure_metadata["type"] = "procedure"
-            procedure_metadata["issueId"] = issue_data["issueId"]
-            qdrant_metadata.append(procedure_metadata)
+    Returns:
+        list: List of transformed langchain_core Document objects.
+    """
+    transformed_documents = []
 
-    return qdrant_data, qdrant_metadata
+    for doc in documents:
+
+        pagecontent_json = json.loads(doc.page_content)
+
+        # Create a new document for the main description
+        main_doc = Document(
+            metadata={
+                "issueId": pagecontent_json["issueId"],
+                "url": pagecontent_json["url"],
+                "type": "issue",
+                "source": doc.metadata.get('source', '')
+            },
+            page_content=pagecontent_json["description"]
+        )
+        transformed_documents.append(main_doc)
+
+        # Create documents for each procedure
+        
+        for procedure in pagecontent_json["procedures"]:
+            procedure_doc = Document(
+                metadata={
+                    "issueId": pagecontent_json["issueId"],
+                    "url": procedure["url"],
+                    "type": "procedure"
+                },
+                page_content=procedure["name"] + "\n" + procedure["description"]
+            )
+            transformed_documents.append(procedure_doc)
+
+    return transformed_documents
 
 
 class DocumentService():
@@ -107,11 +125,9 @@ class DocumentService():
         loader = DirectoryLoader(dir, glob="**/*.json",  loader_cls=TextLoader)
         docs = loader.load()
         logger.info(f"Loaded {len(docs)} documents.")
-        text_list = [doc.page_content for doc in docs]
-        metadata_list = [doc.metadata for doc in docs]
-        texts, metadata = extract_procedures_from_issue(text_list, metadata_list)
-        self.vector_store.add_texts(texts=texts, metadatas=metadata)
-        logger.info(f"SUCCESS: {len(texts)} Texts embedded.")
+        trans_docs = extract_procedures_from_issue(docs)
+        self.vector_store.add_documents(trans_docs)
+        logger.info(f"SUCCESS: {len(trans_docs)} Texts embedded.")
 
     def embed_text(self, text: str, file_name: str, seperator: str) -> None:
         """Embeds the given text in the llama2 database.
