@@ -27,6 +27,7 @@ ACTIVATE_RERANKER = os.getenv('ACTIVATE_RERANKER')
 QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
 QDRANT_URL = os.getenv('QDRANT_URL')
 QDRANT_PORT = os.getenv('QDRANT_PORT')
+SCORE_THREASHOLD = os.getenv('SCORE_THREASHOLD', .7)
 
 
 def extract_procedures_from_issue(documents):
@@ -208,7 +209,7 @@ class DocumentService():
             List[Tuple[Document, float]]: A list of search results, where each result is a tuple
             containing a Document object and a float score.
         """
-        docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=.85)
+        docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=SCORE_THREASHOLD)
 
         logger.debug(f"\nNumber of documents: {len(docs)}")
 
