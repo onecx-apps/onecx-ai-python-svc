@@ -1,4 +1,7 @@
+import json
 import os
+import zipfile
+import copy
 import requests
 from omegaconf import DictConfig
 from agent.utils.configuration import load_config
@@ -10,7 +13,7 @@ from langchain.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain.docstore.document import Document
-from langchain.document_loaders import DirectoryLoader, PyPDFLoader
+from langchain.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from typing import List, Optional, Tuple
 from langchain.embeddings import SentenceTransformerEmbeddings
@@ -24,6 +27,33 @@ ACTIVATE_RERANKER = os.getenv('ACTIVATE_RERANKER')
 QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
 QDRANT_URL = os.getenv('QDRANT_URL')
 QDRANT_PORT = os.getenv('QDRANT_PORT')
+
+
+def extract_procedures_from_issue(text_list: list[str], metadata_list: list[dict]):
+    qdrant_data = []
+    qdrant_metadata = []
+    for text, metadata in zip(text_list, metadata_list):
+        json_dict: dict = json.loads(text)
+
+        # Extract relevant information for issue
+        issue_data = copy.deepcopy(json_dict)
+        issue_data.pop("procedures", None)
+        issue_metadata = metadata.copy()
+        issue_metadata["type"] = "issue"
+        issue_metadata["issueId"] = issue_data["issueId"]
+        qdrant_data.append(json.dumps(issue_data))
+        qdrant_metadata.append(issue_metadata)
+
+        # Extract relevant information for each procedure
+        for procedure in json_dict["procedures"]:
+            qdrant_data.append(json.dumps(procedure))
+            procedure_metadata = metadata.copy()
+            procedure_metadata["type"] = "procedure"
+            procedure_metadata["issueId"] = issue_data["issueId"]
+            qdrant_metadata.append(procedure_metadata)
+
+    return qdrant_data, qdrant_metadata
+
 
 class DocumentService():
     def __init__(self):
@@ -58,6 +88,30 @@ class DocumentService():
         self.vector_store.add_texts(texts=text_list, metadatas=metadata_list)
         logger.info("SUCCESS: Texts embedded.")
 
+    def embed_zip(self, filename: str, dir: str) -> None:
+        """
+        Args:
+            filename (str): name of the zip file
+            dir (str): The directory containing the extracted files to embed.
+
+        Returns:
+            None
+        """
+        logger.info(f"Logged extraction directory:  {dir}")
+
+        # Extract the contents of the zip file
+        zip_file_path = os.path.join(dir, filename)
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+            zip_ref.extractall(dir)
+
+        loader = DirectoryLoader(dir, glob="**/*.json",  loader_cls=TextLoader)
+        docs = loader.load()
+        logger.info(f"Loaded {len(docs)} documents.")
+        text_list = [doc.page_content for doc in docs]
+        metadata_list = [doc.metadata for doc in docs]
+        texts, metadata = extract_procedures_from_issue(text_list, metadata_list)
+        self.vector_store.add_texts(texts=texts, metadatas=metadata)
+        logger.info(f"SUCCESS: {len(texts)} Texts embedded.")
 
     def embed_text(self, text: str, file_name: str, seperator: str) -> None:
         """Embeds the given text in the llama2 database.

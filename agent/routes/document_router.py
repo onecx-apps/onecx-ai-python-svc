@@ -50,8 +50,10 @@ async def upload_document(file: UploadFile) -> UploadFileDTO:
     async with aiofiles.open(destination_path, "wb") as out_file:
         while content := await file.read(1024):
             await out_file.write(content)
-    
-    document_service.embed_directory(dir=temp_dir.name)
+    if "zip" in file.content_type:
+        document_service.embed_zip(filename=file.filename, dir=temp_dir.name)
+    else:
+        document_service.embed_directory(dir=temp_dir.name)
 
     # Cleanup
     temp_dir.cleanup()
