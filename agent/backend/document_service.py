@@ -19,6 +19,7 @@ from typing import List, Optional, Tuple
 from langchain.embeddings import SentenceTransformerEmbeddings
 from dotenv import load_dotenv
 from agent.backend.qdrant_service import get_db_connection
+from qdrant_client.http import models as qdrant_models
 
 load_dotenv()
 
@@ -176,12 +177,6 @@ class DocumentService():
             # Extract issueIds with its highes score
             score_issueIds = get_issueid_score_dict(docs)
 
-            self.vector_store
-
-
-
-
-
 
             for element in docs:
                 document, score = element
@@ -189,10 +184,31 @@ class DocumentService():
                 logger.debug(replace_multiple_whitespaces(document.page_content))
                 logger.debug(document.metadata)
 
+            retriever = self.vector_store.as_retriever(
+                search_type="similarity",
+                search_kwargs={
+                "filter": qdrant_models.Filter(                    
+                    must=[
+                        qdrant_models.FieldCondition(
+                            key="metadata.type",
+                            match=qdrant_models.MatchValue(value="issue")
+                        ),
+                        qdrant_models.FieldCondition(
+                            key="metadata.issueId",
+                            match=qdrant_models.MatchAny(any=list(score_issueIds.keys()))
+                        )                        
+                    ]
+                ),
+                "k": 3})
+
+
+            filtered_docs = retriever.get_relevant_documents(query)
+            logger.debug(f"\n {len(filtered_docs)} filtered documents found")
+            logger.info(f"Filtered docs {filtered_docs} ")
 
             if ACTIVATE_RERANKER == "True":
                 embedding = self.embedding_model
-                filtered_docs = [t[0] for t in docs]
+                
                 retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
 
                 rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
@@ -216,6 +232,6 @@ class DocumentService():
                 return compressed_docs
             else:
                 #Logic for none-reranking needs to be implemented here
-                filtered_docs = [t[0] for t in docs]
+                #filtered_docs = [t[0] for t in docs]
                 return filtered_docs
         return None
