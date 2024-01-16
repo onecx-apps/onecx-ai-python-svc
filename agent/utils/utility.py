@@ -1,11 +1,12 @@
 """This is the utility module."""
 import os
 import re
+import json
 import uuid
 from jinja2 import Template
 from loguru import logger
 from agent.backend.llm_services.LLM import BaseLLM
-
+from langchain.docstore.document import Document
 
 def combine_text_from_list(input_list: list) -> str:
     """Combines all strings in a list to one string.
@@ -131,6 +132,75 @@ def validate_token(token: str | None, llm_backend: str, aleph_alpha_key: str | N
     token = get_token(token, llm_backend, aleph_alpha_key)
 
     return token
+
+
+def extract_procedures_from_issue(documents):
+    """
+    Transform the given list of langchain_core Document objects into a new list of documents.
+
+    Args:
+        documents (list of Document): List of langchain_core Document objects.
+
+    Returns:
+        list: List of transformed langchain_core Document objects.
+    """
+    transformed_documents = []
+
+    for doc in documents:
+
+        pagecontent_json = json.loads(doc.page_content)
+
+        # Create a new document for the main description
+        main_doc = Document(
+            metadata={
+                "issueId": pagecontent_json["issueId"],
+                "url": pagecontent_json["url"],
+                "type": "issue",
+                "source": doc.metadata.get('source', '')
+            },
+            page_content=pagecontent_json["description"]
+        )
+        transformed_documents.append(main_doc)
+
+        # Create documents for each procedure
+        
+        for procedure in pagecontent_json["procedures"]:
+            procedure_doc = Document(
+                metadata={
+                    "issueId": pagecontent_json["issueId"],
+                    "url": procedure["url"],
+                    "type": "procedure"
+                },
+                page_content=procedure["name"] + "\n" + procedure["description"]
+            )
+            transformed_documents.append(procedure_doc)
+
+    return transformed_documents
+
+
+def get_issueid_score_dict(documents):
+    score_dict = {}
+
+    # Loop through the list and update the dictionary with the highest score for each ID
+
+    if documents is not None and len(documents) > 0:
+        for element in documents:
+            document, score = element
+        
+            current_id = document.metadata.get('issueId', '')
+            current_score = score
+
+            # Check if the ID is already in the dictionary
+            if current_id in score_dict:
+                # Update the score if the current score is higher
+                if current_score > score_dict[current_id]:
+                    score_dict[current_id] = current_score
+            else:
+                # Add the ID to the dictionary if not present
+                score_dict[current_id] = current_score
+
+    logger.info(f"SCORED_DICT {score_dict}.")
+    return score_dict
 
 
 

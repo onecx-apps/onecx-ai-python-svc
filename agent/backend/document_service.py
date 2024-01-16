@@ -1,4 +1,3 @@
-import json
 import os
 import zipfile
 import copy
@@ -6,6 +5,7 @@ import requests
 from omegaconf import DictConfig
 from agent.utils.configuration import load_config
 from agent.utils.utility import replace_multiple_whitespaces
+from agent.utils.utility import extract_procedures_from_issue, get_issueid_score_dict
 from loguru import logger
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
@@ -30,48 +30,6 @@ QDRANT_PORT = os.getenv('QDRANT_PORT')
 SCORE_THREASHOLD = os.getenv('SCORE_THREASHOLD', .7)
 
 
-def extract_procedures_from_issue(documents):
-    """
-    Transform the given list of langchain_core Document objects into a new list of documents.
-
-    Args:
-        documents (list of Document): List of langchain_core Document objects.
-
-    Returns:
-        list: List of transformed langchain_core Document objects.
-    """
-    transformed_documents = []
-
-    for doc in documents:
-
-        pagecontent_json = json.loads(doc.page_content)
-
-        # Create a new document for the main description
-        main_doc = Document(
-            metadata={
-                "issueId": pagecontent_json["issueId"],
-                "url": pagecontent_json["url"],
-                "type": "issue",
-                "source": doc.metadata.get('source', '')
-            },
-            page_content=pagecontent_json["description"]
-        )
-        transformed_documents.append(main_doc)
-
-        # Create documents for each procedure
-        
-        for procedure in pagecontent_json["procedures"]:
-            procedure_doc = Document(
-                metadata={
-                    "issueId": pagecontent_json["issueId"],
-                    "url": procedure["url"],
-                    "type": "procedure"
-                },
-                page_content=procedure["name"] + "\n" + procedure["description"]
-            )
-            transformed_documents.append(procedure_doc)
-
-    return transformed_documents
 
 
 class DocumentService():
@@ -210,18 +168,27 @@ class DocumentService():
             containing a Document object and a float score.
         """
         docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=SCORE_THREASHOLD)
-
         logger.debug(f"\nNumber of documents: {len(docs)}")
 
         if docs is not None and len(docs) > 0:
+            logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
+
+            # Extract issueIds with its highes score
+            score_issueIds = get_issueid_score_dict(docs)
+
+            self.vector_store
+
+
+
+
+
+
             for element in docs:
                 document, score = element
                 logger.debug(f"\n Document found with score: {score}")
                 logger.debug(replace_multiple_whitespaces(document.page_content))
                 logger.debug(document.metadata)
 
-
-            logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
             if ACTIVATE_RERANKER == "True":
                 embedding = self.embedding_model
