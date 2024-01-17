@@ -200,14 +200,31 @@ def get_issueid_score_dict(documents):
                 score_dict[current_id] = current_score
 
     logger.info(f"SCORED_DICT {score_dict}.")
-    return score_dict
+
+
+    # Sort the dictionary items based on scores
+    sorted_items = sorted(score_dict.items(), key=lambda x: x[1], reverse=True)
+
+    # Iterate through the sorted items to remove IDs with a too high difference
+    filtered_dict = {}
+    prev_score = None
+
+    for current_id, current_score in sorted_items:
+        if prev_score is not None and (prev_score - current_score) <= 0.02:
+            filtered_dict[current_id] = current_score
+        elif prev_score is None:
+            filtered_dict[current_id] = current_score
+
+        prev_score = current_score
+    logger.info(f"FILTERED_DICT {filtered_dict}.")
+    return filtered_dict
 
 
 
 def replace_multiple_whitespaces(text):
     # Use regular expression to replace multiple whitespaces with a single whitespace
     cleaned_text = re.sub(r'\s+', ' ', text)
-    return cleaned_text
+    return '<CONTEXT>'+cleaned_text+'/<CONTEXT>\n'
 
 
 if __name__ == "__main__":
