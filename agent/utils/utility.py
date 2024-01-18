@@ -155,24 +155,30 @@ def extract_procedures_from_issue(documents):
             metadata={
                 "issueId": pagecontent_json["issueId"],
                 "url": pagecontent_json["url"],
+                "title": pagecontent_json["title"],
                 "type": "issue",
                 "source": doc.metadata.get('source', '')
             },
-            page_content=pagecontent_json["description"]
+            page_content=pagecontent_json["title"] + "\n" + pagecontent_json["description"]
         )
         transformed_documents.append(main_doc)
 
         # Create documents for each procedure
         
+        options_inc = 0
         for procedure in pagecontent_json["procedures"]:
             procedure_doc = Document(
                 metadata={
                     "issueId": pagecontent_json["issueId"],
                     "url": procedure["url"],
+                    "image_url": procedure["image_url"],
                     "type": "procedure"
                 },
                 page_content=procedure["name"] + "\n" + procedure["description"]
             )
+            options_inc+=1
+            main_doc.page_content = main_doc.page_content + "\nOption " + str(options_inc) + ":\n" + procedure["name"]
+
             transformed_documents.append(procedure_doc)
 
     return transformed_documents

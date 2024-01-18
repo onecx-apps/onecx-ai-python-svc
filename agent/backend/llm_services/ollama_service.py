@@ -50,7 +50,8 @@ class OllamaLLM(BaseLLM):
         response = self.generate_request(url_ollama_generateEndpoint=f"{ollama_url_with_port}/api/chat",
                                         model=ollama_model,
                                         full_chat_history=messages)
-        
+
+        messages.append({"role": "assistant", "content": response})
         return response
 
     def chat(self, documents: list[tuple[LangchainDocument, float]], messages: any, query: str, conversation_type: str, summarization: bool = False) -> Tuple[str, Union[Dict[Any, Any], List[Dict[Any, Any]]]]:

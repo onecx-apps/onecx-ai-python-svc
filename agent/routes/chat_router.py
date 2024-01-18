@@ -6,6 +6,7 @@ from ..data_model.chatbot_model import ChatMessageDTO, ConversationDTO, MessageT
 import agent.data_model.response_model as Response
 from loguru import logger
 from agent.dependencies import document_service, llm
+import copy
 
 
 chat_router = APIRouter(tags=["chat"])
@@ -65,11 +66,32 @@ async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
     conversation["history"].append(message_dictDTO)
 
     #response bot
-    documents = document_service.search_documents(query=message_dict["message"], amount=os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS",10))
-    answer, meta_data = llm.chat(query=message_dict["message"], documents=documents, conversation_type=conversation["conversationType"], messages=chatCompletionArr)
-    botResponse = ChatMessageDTO(conversationId=chat_message.conversationId, correlationId=message_dict["correlationId"], message=answer, type=MessageType.ASSISTANT, creationDate=int(time.time()))
-    conversation["history"].append(botResponse)
-    return botResponse
+    amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
+    documents = document_service.search_documents(query=message_dict["message"], amount=amount)
+
+    
+    
+    llm_answers = []
+    if documents:
+        for document in documents:
+            chatCompletionArrCopy = copy.deepcopy(chatCompletionArr)        
+            #logger.info(f"document.metadata: {document.metadata}")
+            logger.info(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: {chatCompletionArrCopy}")
+            
+            answer, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
+            llm_answers.append("\n" + answer + "\n URL:" + document.metadata.get('url', '---')  + "\n\n")
+    else:
+        # If documents list is empty, create a "Nothing found" answer
+        llm_answers.append("Es wurde kein passender Eintrag gefunden.")
+
+    answer = '\n'.join(llm_answers)
+
+    bot_response = ChatMessageDTO(conversationId=chat_message.conversationId, correlationId=message_dict["correlationId"], message=answer, type=MessageType.ASSISTANT, creationDate=int(time.time()))
+    conversation["history"].append(bot_response)
+
+    return bot_response
+
+
 
 @chat_router.get("/conversation/{conversationId}")
 async def get_conversation(conversationId: str) -> ConversationDTO:
