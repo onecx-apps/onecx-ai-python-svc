@@ -6,8 +6,9 @@ from ..data_model.chatbot_model import ChatMessageDTO, ConversationDTO, MessageT
 import agent.data_model.response_model as Response
 from loguru import logger
 from agent.dependencies import document_service, llm
+from agent.utils.utility import add_solution
 import copy
-
+import json
 
 chat_router = APIRouter(tags=["chat"])
 chatConversationMemory = []
@@ -69,22 +70,41 @@ async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
     amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
     documents = document_service.search_documents(query=message_dict["message"], amount=amount)
 
+    # Create an empty structure
+    json_data = [
+        {
+            "solutions": []
+        }
+    ]
     
-    
-    llm_answers = []
+    answer = ""
     if documents:
         for document in documents:
             chatCompletionArrCopy = copy.deepcopy(chatCompletionArr)        
-            #logger.info(f"document.metadata: {document.metadata}")
-            logger.info(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: {chatCompletionArrCopy}")
+            logger.info(f"document: {document}")
             
-            answer, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
-            llm_answers.append("\n" + answer + "\n URL:" + document.metadata.get('url', '---')  + "\n\n")
+            
+            #llm_response, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
+
+            prompt = f"""I have the following TEXT. '''{document.page_content}''' \n Please summarize this TEXT with maximum 3 sentences."""
+            
+            llm_response = llm.generate(prompt)
+
+            # Add the first solution
+            add_solution(
+                document.metadata.get('title', '---'),
+                document.metadata.get('images', '[]'),
+                llm_response,
+                document.metadata.get('url', '---'),
+                json_data
+            )
+        answer=json.dumps(json_data, ensure_ascii=False,  indent=4)
     else:
         # If documents list is empty, create a "Nothing found" answer
-        llm_answers.append("Es wurde kein passender Eintrag gefunden.")
+        answer="Es wurde kein passender Eintrag gefunden."
 
-    answer = '\n'.join(llm_answers)
+    logger.info(f"answers: {answer}")
+
 
     bot_response = ChatMessageDTO(conversationId=chat_message.conversationId, correlationId=message_dict["correlationId"], message=answer, type=MessageType.ASSISTANT, creationDate=int(time.time()))
     conversation["history"].append(bot_response)

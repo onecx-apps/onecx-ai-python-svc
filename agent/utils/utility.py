@@ -157,15 +157,17 @@ def extract_procedures_from_issue(documents):
                 "url": pagecontent_json["url"],
                 "title": pagecontent_json["title"],
                 "type": "issue",
-                "source": doc.metadata.get('source', '')
+                "source": doc.metadata.get('source', ''),
+                "images":[]
             },
             page_content=pagecontent_json["title"] + "\n" + pagecontent_json["description"]
         )
-        transformed_documents.append(main_doc)
+        
 
         # Create documents for each procedure
         
         options_inc = 0
+        image_urls = []
         for procedure in pagecontent_json["procedures"]:
             procedure_doc = Document(
                 metadata={
@@ -178,8 +180,12 @@ def extract_procedures_from_issue(documents):
             )
             options_inc+=1
             main_doc.page_content = main_doc.page_content + "\nOption " + str(options_inc) + ":\n" + procedure["name"]
-
+            image_urls.append(procedure["image_url"])
             transformed_documents.append(procedure_doc)
+
+
+        main_doc.metadata["images"] = [{"image_url": url} for url in image_urls]
+        transformed_documents.append(main_doc)
 
     return transformed_documents
 
@@ -213,15 +219,17 @@ def get_issueid_score_dict(documents):
 
     # Iterate through the sorted items to remove IDs with a too high difference
     filtered_dict = {}
-    prev_score = None
+    
+    # Find the top score
+    top_score = sorted_items[0][1]
+
+    # Iterate through the sorted items to remove IDs with a too high difference compared to the top score
+    filtered_dict = {}
 
     for current_id, current_score in sorted_items:
-        if prev_score is not None and (prev_score - current_score) <= 0.02:
+        if (top_score - current_score) <= 0.02:
             filtered_dict[current_id] = current_score
-        elif prev_score is None:
-            filtered_dict[current_id] = current_score
-
-        prev_score = current_score
+    
     logger.info(f"FILTERED_DICT {filtered_dict}.")
     return filtered_dict
 
@@ -233,11 +241,24 @@ def replace_multiple_whitespaces(text):
     return '<CONTEXT>'+cleaned_text+'/<CONTEXT>\n'
 
 
-if __name__ == "__main__":
-    # test the function
-    generate_prompt("qa.j2", "This is a test text.", "What is the meaning of life?")
+
+# Function to add a solution to the structure
+def add_solution(headline, image_urls, summary, url, json_data):
+    solution = {
+        "headline": headline,
+        "images": image_urls,
+        "summary": summary,
+        "url": url,
+    }
+    json_data[0]["solutions"].append(solution)
+
 
 def get_llm_service(name: str = "ollama") -> BaseLLM:
     if (name == "ollama"):
         from agent.backend.llm_services.ollama_service import OllamaLLM
         return OllamaLLM()
+    
+
+if __name__ == "__main__":
+    # test the function
+    generate_prompt("qa.j2", "This is a test text.", "What is the meaning of life?")

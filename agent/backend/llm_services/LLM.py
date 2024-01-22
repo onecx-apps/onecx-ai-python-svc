@@ -5,19 +5,6 @@ from omegaconf import DictConfig
 
 
 class BaseLLM(ABC):
-    @abstractmethod
-    def send_chat_completion(self, text: str, query: str, conversation_type: str, messages: any) -> str:
-        """Sent completion request to LLM API.
-
-        Args:
-            text (str): The text on which the completion should be based.
-            query (str): The query for the completion.
-            cfg (DictConfig):
-
-        Returns:
-            str: Response from the LLM API.
-        """
-        pass
 
     @abstractmethod
     def chat(self, documents: list[tuple[LangchainDocument, float]], messages: any, query: str, conversation_type: str, summarization: bool = False) -> Tuple[str, Union[Dict[Any, Any], List[Dict[Any, Any]]]]:
@@ -34,6 +21,35 @@ class BaseLLM(ABC):
         pass
 
     @abstractmethod
-    def generate_request(self, url_ollama_generateEndpoint: str, model: str, full_prompt: str):
+    def send_chat_completion(self, text: str, query: str, conversation_type: str, messages: any) -> str:
+        """Sent completion request to LLM API.
+
+        Args:
+            text (str): The text on which the completion should be based.
+            query (str): The query for the completion.
+            cfg (DictConfig):
+
+        Returns:
+            str: Response from the LLM API.
+        """
+        pass
+
+    @abstractmethod
+    def send_chat_request(self, url_ollama_chatEndpoint: str, model: str, full_prompt: str):
+        pass
+
+
+
+    @abstractmethod
+    def generate(self, prompt: str) -> str:
+        pass
+
+
+    @abstractmethod
+    def send_generate(self, prompt: str) -> str:
+        pass
+
+    @abstractmethod
+    def send_generate_request(self, url_ollama_generateEndpoint: str, model: str, system: str, prompt: str):
         pass
 
