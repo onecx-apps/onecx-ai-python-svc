@@ -86,7 +86,7 @@ async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
             
             #llm_response, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
 
-            prompt = f"""I have the following TEXT. '''{document.page_content}''' \n Please summarize this TEXT with maximum 3 sentences."""
+            prompt = f"""<|im_start|>user\n I have the following TEXT *** {document.page_content} *** \n Please summarize this TEXT with maximum 3 sentences.<|im_end|><|im_start|>assistant"""
             
             llm_response = llm.generate(prompt)
 

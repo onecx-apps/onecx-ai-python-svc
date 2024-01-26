@@ -206,7 +206,8 @@ class OllamaLLM(BaseLLM):
         data = {
             "model": model,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "options": {"stop": ["<|im_start|>", "<|im_end|>"]}
         }
 
         response = requests.post(url, json=data, headers=headers)
