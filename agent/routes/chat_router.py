@@ -2,7 +2,7 @@ import uuid
 import time
 import os
 from fastapi import APIRouter, HTTPException, Body
-from ..data_model.chatbot_model import ChatMessageDTO, ConversationDTO, MessageType, ConversationType
+from ..data_model.chatbot_model import ChatMessage, Conversation, MessageType, ConversationType
 import agent.data_model.response_model as Response
 from loguru import logger
 from agent.dependencies import document_service, llm
@@ -17,11 +17,11 @@ def get_chat_by_conversation_id(conversationId):
             return conversation
     return None
 
-#function that returns a ConversationDTO but without System Messages
+#function that returns a Conversation but without System Messages
 def get_chat_by_conversation_id_filtered(conversationId):
     for conversation in chatConversationMemory:
         if conversation["conversationId"] == conversationId:
-            conversationObj = ConversationDTO(conversationId=conversation["conversationId"], history=conversation["history"], conversationType=ConversationType(conversation["conversationType"]))
+            conversationObj = Conversation(conversationId=conversation["conversationId"], history=conversation["history"], conversationType=ConversationType(conversation["conversationType"]))
             
             # Code to filter out the SYSTEM messages
             conversationObj.history = [msg for msg in conversationObj.history if msg.type != MessageType.SYSTEM]
@@ -41,14 +41,14 @@ def read_root() -> str:
 
 
 @chat_router.post("/chat")
-async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
+async def chat_with_bot(chat_message: ChatMessage) -> ChatMessage:
     # Check if conversation exists
     conversation = get_chat_by_conversation_id(chat_message.conversationId)
     
-    # Convert ChatMessageDTO to a dict format to append to history
+    # Convert ChatMessage to a dict format to append to history
     message_dict = chat_message.dict()
     message_dict["correlationId"] = str(uuid.uuid4())
-    message_dictDTO = ChatMessageDTO(conversationId=message_dict["conversationId"], correlationId=message_dict["correlationId"], message=message_dict["message"], type=message_dict["type"], creationDate=int(time.time()))
+    message_dictDTO = ChatMessage(conversationId=message_dict["conversationId"], correlationId=message_dict["correlationId"], message=message_dict["message"], type=message_dict["type"], creationDate=int(time.time()))
 
     if not conversation:
         # If conversation doesn't exist, raise an error
@@ -67,12 +67,12 @@ async def chat_with_bot(chat_message: ChatMessageDTO) -> ChatMessageDTO:
     #response bot
     documents = document_service.search_documents(query=message_dict["message"], amount=os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS",10))
     answer, meta_data = llm.chat(query=message_dict["message"], documents=documents, conversation_type=conversation["conversationType"], messages=chatCompletionArr)
-    botResponse = ChatMessageDTO(conversationId=chat_message.conversationId, correlationId=message_dict["correlationId"], message=answer, type=MessageType.ASSISTANT, creationDate=int(time.time()))
+    botResponse = ChatMessage(conversationId=chat_message.conversationId, correlationId=message_dict["correlationId"], message=answer, type=MessageType.ASSISTANT, creationDate=int(time.time()))
     conversation["history"].append(botResponse)
     return botResponse
 
 @chat_router.get("/conversation/{conversationId}")
-async def get_conversation(conversationId: str) -> ConversationDTO:
+async def get_conversation(conversationId: str) -> Conversation:
     conversation = get_chat_by_conversation_id(conversationId)
     
     if  conversation == None:
@@ -81,20 +81,20 @@ async def get_conversation(conversationId: str) -> ConversationDTO:
         return conversation
 
 @chat_router.post("/startConversation")
-async def start_conversation(conversation_type: str = Body(..., embed=True)) -> ConversationDTO:
+async def start_conversation(conversation_type: str = Body(..., embed=True)) -> Conversation:
     conversation_id_uuid = str(uuid.uuid4())
     start_conversation = []
     if conversation_type == "Q_AND_A":
-        iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
+        iniialSystemMessage = ChatMessage(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
         start_conversation.append(iniialSystemMessage)
 
         #If you want to add a welcome message into the message history enable the following:
-        #welcomeMessage= ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="Welcome Message", message="Hallo ich bin dein Asisstent für heute! Was möchtest du wissen?(Q&A)", type=MessageType.ASSISTANT, creationDate=int(time.time()))
+        #welcomeMessage= ChatMessage(conversationId=conversation_id_uuid, correlationId="Welcome Message", message="Hallo ich bin dein Asisstent für heute! Was möchtest du wissen?(Q&A)", type=MessageType.ASSISTANT, creationDate=int(time.time()))
         #start_conversation.append(welcomeMessage)
 
     else:
         #Different system messages for each conversation type can be implemented here. E.g.: channeling.
-        iniialSystemMessage = ChatMessageDTO(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
+        iniialSystemMessage = ChatMessage(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
         start_conversation.append(iniialSystemMessage)
 
     chatConversationMemory.append({"conversationId": conversation_id_uuid, "history": start_conversation, "conversationType": conversation_type})

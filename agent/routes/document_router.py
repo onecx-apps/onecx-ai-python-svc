@@ -2,7 +2,7 @@ import os
 import aiofiles
 import tempfile
 from fastapi import APIRouter, UploadFile
-from ..data_model.chatbot_model import DocumentDTO, UploadFileDTO
+from ..data_model.chatbot_model import Document, UploadFile
 from loguru import logger
 from typing import List
 from ..backend.cloud.cloud_service_factory import CloudServiceFactory
@@ -38,7 +38,7 @@ def import_documents():
     return {"message": "Documents are imported into vector db"}
 
 @document_router.post("/document/upload")
-async def upload_document(file: UploadFile) -> UploadFileDTO:
+async def upload_document(file: UploadFile) -> UploadFile:
     logger.info(f"Uploading file {file.filename} directly..")
     
     # Create temporary upload directory until uploaded file is embedded
@@ -55,10 +55,10 @@ async def upload_document(file: UploadFile) -> UploadFileDTO:
 
     # Cleanup
     temp_dir.cleanup()
-    return UploadFileDTO(filename=file.filename, size=file.file.tell(), content_type=file.content_type)
+    return UploadFile(filename=file.filename, size=file.file.tell(), content_type=file.content_type)
 
 @document_router.post("/document/uploadMultiple/{conversationId}")
-async def upload_documents(conversationId: str, documents: List[UploadFile]) -> List[UploadFileDTO]:
+async def upload_documents(conversationId: str, documents: List[UploadFile]) -> List[UploadFile]:
     response = []
     for document in documents:
         response.append(await upload_document(document))
