@@ -2,6 +2,8 @@ openapi: 3.0.0
 info:
   title: ChatBotRestApi
   version: 1.0.1
+servers:
+  - url: "http://onecx-ai-svc:8080"  
 tags:
   - name: aiChat  
 paths:
