@@ -77,17 +77,17 @@ class CustomPromptCompletion(BaseModel):
     temperature: float = Field(..., title="Temperature", description="The temperature to use for the completion.")
     stop_sequences: List[str] = Field(..., title="Stop Sequences", description="The stop sequences to use for the completion.")
 
-class ChatMessageDTO(BaseModel):
+class ChatMessage(BaseModel):
     conversationId: str
     correlationId: str
     message: constr(max_length=4000)
     type: Literal["BOT", "HUMAN", "ACTION"]
     creationDate: conint(strict=True, ge=0)
 
-class ConversationDTO(BaseModel):
+class Conversation(BaseModel):
     conversationId: str
-    history: List[ChatMessageDTO]
+    history: List[ChatMessage]
     conversationType: Literal["CHANNELING", "Q_AND_A"]
 
-class DocumentDTO(BaseModel):
+class Document(BaseModel):
     content: str  # Base64 encoded document content

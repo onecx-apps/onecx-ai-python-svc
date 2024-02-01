@@ -11,14 +11,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatMessageDTO'
+              $ref: '#/components/schemas/ChatMessage'
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChatMessageDTO'
+                $ref: '#/components/schemas/ChatMessage'
   /conversation/{conversationId}:
     get:
       operationId: chatbotapi.get_conversation
@@ -34,7 +34,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConversationDTO'
+                $ref: '#/components/schemas/Conversation'
         '404':
           description: Not Found
           content:
@@ -61,7 +61,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConversationDTO'
+                $ref: '#/components/schemas/Conversation'
   /uploadDocuments/{conversationId}:
     post:
       operationId: chatbotapi.post_uploadDocuments
@@ -78,13 +78,13 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/DocumentDTO'
+                $ref: '#/components/schemas/Document'
       responses:
         '200':
           description: Successful response
 components:
   schemas:
-    ChatMessageDTO:
+    ChatMessage:
       type: object
       properties:
         conversationId:
@@ -100,7 +100,7 @@ components:
         creationDate:
           type: integer
           format: int64
-    ConversationDTO:
+    Conversation:
       type: object
       properties:
         conversationId:
@@ -108,11 +108,11 @@ components:
         history:
           type: array
           items:
-            $ref: '#/components/schemas/ChatMessageDTO'
+            $ref: '#/components/schemas/ChatMessage'
         conversationType:
           type: string
           enum: [CHANNELING, Q_AND_A]
-    DocumentDTO:
+    Document:
       type: object
       properties:
         content:
