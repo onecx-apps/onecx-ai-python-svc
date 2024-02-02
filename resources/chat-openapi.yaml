@@ -5,19 +5,27 @@ info:
 servers:
   - url: "http://onecx-ai-svc:8080"  
 tags:
-  - name: aiChat  
+  - name: aiChat
 paths:
   /chat:
     post:
       tags:
-        - aiChat    
+        - aiChat
       operationId: chat
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatMessage'
+              type: object
+              properties:
+                chatMessage:
+                  $ref: '#/components/schemas/ChatMessage'
+                conversation:
+                  $ref: '#/components/schemas/Conversation'
+              required:
+                - chatMessage
+              additionalProperties: false
       responses:
         '200':
           description: Successful response
