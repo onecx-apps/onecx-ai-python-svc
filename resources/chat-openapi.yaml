@@ -2,16 +2,30 @@ openapi: 3.0.0
 info:
   title: ChatBotRestApi
   version: 1.0.1
+servers:
+  - url: "http://onecx-ai-svc:8080"  
+tags:
+  - name: aiChat
 paths:
   /chat:
     post:
-      operationId: chatbotapi.post_chat
+      tags:
+        - aiChat
+      operationId: chat
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatMessage'
+              type: object
+              properties:
+                chatMessage:
+                  $ref: '#/components/schemas/ChatMessage'
+                conversation:
+                  $ref: '#/components/schemas/Conversation'
+              required:
+                - chatMessage
+              additionalProperties: false
       responses:
         '200':
           description: Successful response
@@ -21,7 +35,9 @@ paths:
                 $ref: '#/components/schemas/ChatMessage'
   /conversation/{conversationId}:
     get:
-      operationId: chatbotapi.get_conversation
+      tags:
+        - aiChat      
+      operationId: getConversation
       parameters:
         - name: conversationId
           in: path
@@ -43,7 +59,9 @@ paths:
                 error: "Conversation not found"                
   /startConversation:
     post:
-      operationId: chatbotapi.post_startConversation
+      tags:
+        - aiChat      
+      operationId: startConversation
       requestBody:
         required: true
         content:
@@ -64,7 +82,9 @@ paths:
                 $ref: '#/components/schemas/Conversation'
   /uploadDocuments/{conversationId}:
     post:
-      operationId: chatbotapi.post_uploadDocuments
+      tags:
+        - aiChat      
+      operationId: uploadDocuments
       parameters:
         - name: conversationId
           in: path
@@ -96,7 +116,7 @@ components:
           maxLength: 10000
         type:
           type: string
-          enum: [SYSTEM, USER, ACTION]
+          enum: [ASSISTANT, SYSTEM, USER, ACTION]
         creationDate:
           type: integer
           format: int64

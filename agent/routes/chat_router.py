@@ -1,3 +1,4 @@
+from typing import Optional
 import uuid
 import time
 import os
@@ -43,7 +44,7 @@ def read_root() -> str:
 
 
 @chat_router.post("/chat")
-async def chat_with_bot(chat_message: ChatMessage) -> ChatMessage:
+async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conversation] = None) -> ChatMessage:
     # Check if conversation exists
     conversation = get_chat_by_conversation_id(chat_message.conversationId)
     
