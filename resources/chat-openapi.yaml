@@ -120,6 +120,8 @@ components:
         creationDate:
           type: integer
           format: int64
+        reliability:
+          type: float          
     Conversation:
       type: object
       properties:
