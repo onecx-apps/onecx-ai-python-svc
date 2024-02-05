@@ -250,7 +250,7 @@ def add_solution(headline, image_urls, summary, url, json_data):
         "summary": summary,
         "url": url,
     }
-    json_data[0]["solutions"].append(solution)
+    json_data["solutions"].append(solution)
 
 
 def get_llm_service(name: str = "ollama") -> BaseLLM:
@@ -258,6 +258,35 @@ def get_llm_service(name: str = "ollama") -> BaseLLM:
         from agent.backend.llm_services.ollama_service import OllamaLLM
         return OllamaLLM()
     
+
+def check_for_yes(input_string):
+    # Define a regular expression pattern to match variations of "yes"
+    yes_pattern = re.compile(r'\b(?:yes|ja)\b', re.IGNORECASE)
+
+    # Use re.search to check if the pattern is present in the input string
+    match = re.search(yes_pattern, input_string)
+
+    # Return True if a match is found, otherwise return False
+    return bool(match)
+
+
+def detect_language(text):
+    text = text.lower()
+
+    if 'german' in text or 'deutsch' in text:
+        return 'German'
+    elif 'english' in text or 'englisch' in text:
+        return 'English'
+    elif 'french' in text or 'französisch' in text:
+        return 'French'
+    elif 'italian' in text or 'italienisch' in text:
+        return 'Italian'
+    elif 'spanish' in text or 'spanisch' in text:
+        return 'Spanish'
+    else:
+        return 'English'
+
+
 
 if __name__ == "__main__":
     # test the function

@@ -7,7 +7,7 @@ from ..data_model.chatbot_model import ChatMessage, Conversation, MessageType, C
 import agent.data_model.response_model as Response
 from loguru import logger
 from agent.dependencies import document_service, llm
-from agent.utils.utility import add_solution
+from agent.utils.utility import add_solution, check_for_yes, detect_language
 import copy
 import json
 
@@ -67,43 +67,76 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
     # If conversation exists, append the message to its history
     conversation["history"].append(message_dictDTO)
 
-    #response bot
-    amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
-    documents = document_service.search_documents(query=message_dict["message"], amount=amount)
+    answer = ""
+    language = ""
+
+    analyize_question_prompt = f"""[INST] You are a helpful chat assistant. Analyze the provided TEXT and make a determination as to whether or not it is about a problem.
+    TEXT: {message_dict["message"]}
+    If it is a problem simply answer with precisely "YES" and the language of the TEXT. Do not add any additional explainations!
+	A full sample response looks like:
+	NO, French
+    [/INST]
+    """
+    analyize_question_response = llm.generate(analyize_question_prompt)
+    
+    language = detect_language(analyize_question_response)
 
     # Create an empty structure
-    json_data = [
-        {
-            "solutions": []
-        }
-    ]
-    
-    answer = ""
-    if documents:
-        for document in documents:
-            chatCompletionArrCopy = copy.deepcopy(chatCompletionArr)        
-            logger.info(f"document: {document}")
-            
-            
-            #llm_response, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
+    json_data = {
+        "general_answer": "",
+        "solutions": []
+    }
 
-            prompt = f"""<|im_start|>user\n I have the following TEXT *** {document.page_content} *** \n Please summarize this TEXT with maximum 3 sentences.<|im_end|><|im_start|>assistant"""
-            
-            llm_response = llm.generate(prompt)
+    if not check_for_yes(analyize_question_response):
 
-            # Add the first solution
-            add_solution(
-                document.metadata.get('title', '---'),
-                document.metadata.get('images', '[]'),
-                llm_response,
-                document.metadata.get('url', '---'),
-                json_data
-            )
-        answer=json.dumps(json_data, ensure_ascii=False,  indent=4)
+        answer_question_prompt = f"""[INST] You are a helpful chat assistant. Answer to the provided TEXT in {language} without any explainations!
+        TEXT: {message_dict["message"]}
+        [/INST]
+        """
+        answer_question_response = llm.generate(answer_question_prompt)
+        json_data["general_answer"] = answer_question_response
     else:
-        # If documents list is empty, create a "Nothing found" answer
-        answer="Es wurde kein passender Eintrag gefunden."
+        #response bot
+        amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
+        documents = document_service.search_documents(query=message_dict["message"], amount=amount)
 
+
+        
+        length_of_documents = len(documents) if documents is not None else 0
+
+        general_response_prompt = f"""[INST] You are a helpful chat assistant. Tell in {language} that you found {length_of_documents} answers for the provided TEXT without any explainations and with one short sentence maximum!
+        TEXT: {message_dict["message"]}
+        [/INST]
+        """
+        general_answer = llm.generate(general_response_prompt)
+        json_data["general_answer"] = general_answer
+
+        if documents:
+            for document in documents:
+                chatCompletionArrCopy = copy.deepcopy(chatCompletionArr)        
+                logger.info(f"document: {document}")
+                
+                
+                #llm_response, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
+
+                #prompt = f"""[INST] I have the following TEXT *** {document.page_content} *** \n Please summarize this TEXT with maximum 3 sentences in the same language without any explainations. [/INST]"""
+                prompt = f"""[INST] You are a helpful CONTENT summarization assistant. Your task is to generate a summarization text in {language} of the provided CONTENT :
+                CONTENT: {document.page_content}
+
+                Just generate the summarization without explanations.
+                [/INST] """
+                
+                llm_response = llm.generate(prompt)
+
+                # Add the first solution
+                add_solution(
+                    document.metadata.get('title', '---'),
+                    document.metadata.get('images', '[]'),
+                    llm_response,
+                    document.metadata.get('url', '---'),
+                    json_data
+                )
+    answer=json.dumps(json_data, ensure_ascii=False,  indent=4)
     logger.info(f"answers: {answer}")
 
 
