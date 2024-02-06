@@ -29,7 +29,7 @@ QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
 QDRANT_URL = os.getenv('QDRANT_URL')
 QDRANT_PORT = os.getenv('QDRANT_PORT')
 SCORE_THREASHOLD = os.getenv('SCORE_THREASHOLD', .7)
-
+IMAGES_LOCATION = os.getenv('IMAGES_LOCATION')
 
 
 
@@ -85,7 +85,7 @@ class DocumentService():
         loader = DirectoryLoader(dir, glob="**/*.json",  loader_cls=TextLoader)
         docs = loader.load()
         logger.info(f"Loaded {len(docs)} documents.")
-        trans_docs = extract_procedures_from_issue(docs)
+        trans_docs = extract_procedures_from_issue(docs, IMAGES_LOCATION)
         self.vector_store.add_documents(trans_docs)
         logger.info(f"SUCCESS: {len(trans_docs)} Texts embedded.")
 

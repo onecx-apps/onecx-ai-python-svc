@@ -72,7 +72,7 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
 
     analyize_question_prompt = f"""[INST] You are a helpful chat assistant. Analyze the provided TEXT and make a determination as to whether or not it is about a problem.
     TEXT: {message_dict["message"]}
-    If it is a problem simply answer with precisely "YES" and the language of the TEXT. Do not add any additional explainations!
+    If it is a technical problem simply answer with precisely "YES" and the language of the TEXT. Do not add any additional explainations!
 	A full sample response looks like:
 	NO, French
     [/INST]

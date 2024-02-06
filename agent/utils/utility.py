@@ -134,7 +134,7 @@ def validate_token(token: str | None, llm_backend: str, aleph_alpha_key: str | N
     return token
 
 
-def extract_procedures_from_issue(documents):
+def extract_procedures_from_issue(documents, IMAGES_LOCATION):
     """
     Transform the given list of langchain_core Document objects into a new list of documents.
 
@@ -173,14 +173,14 @@ def extract_procedures_from_issue(documents):
                 metadata={
                     "issueId": pagecontent_json["issueId"],
                     "url": procedure["url"],
-                    "image_url": procedure["image_url"],
+                    "image_url": IMAGES_LOCATION + procedure["image_url"],
                     "type": "procedure"
                 },
                 page_content=procedure["name"] + "\n" + procedure["description"]
             )
             options_inc+=1
             main_doc.page_content = main_doc.page_content + "\nOption " + str(options_inc) + ":\n" + procedure["name"]
-            image_urls.append(procedure["image_url"])
+            image_urls.append(IMAGES_LOCATION + procedure["image_url"])
             transformed_documents.append(procedure_doc)
 
 
