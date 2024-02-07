@@ -1,6 +1,7 @@
 """FastAPI Backend for the Knowledge Agent."""
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from loguru import logger
 from agent.backend.document_service import DocumentService
@@ -10,8 +11,22 @@ from .routes import chat_router, document_router
 logger.add("logs/file_{time}.log", backtrace=False, diagnose=False)
 logger.info("Startup.")
 
+
+
 # initialize the Fast API Application.
 app = FastAPI(debug=True)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can specify specific origins instead of "*"
+    allow_credentials=True,
+    allow_methods=["*"],  # You can specify specific HTTP methods
+    allow_headers=["*"],  # You can specify specific headers
+)
+
+
+
+
 load_dotenv()
 
 logger.info("Loading REST API Finished.")
