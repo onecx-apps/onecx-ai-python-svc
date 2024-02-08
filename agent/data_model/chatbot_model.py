@@ -30,7 +30,7 @@ class Conversation(BaseModel):
 class Document(BaseModel):
     content: str = Field(None, description="Base64 encoded document content")
 
-class UploadFile(BaseModel):
+class UploadFileDTO(BaseModel):
     filename: str = Field(None, description="Filename of the received file")
     size: int = Field(None, description="Filesize in Bytes")
     content_type: str = Field(None, description="MIME Type / media type")
