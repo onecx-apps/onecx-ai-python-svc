@@ -83,6 +83,7 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
 
     # Create an empty structure
     json_data = {
+        "status": "",
         "general_answer": "",
         "solutions": []
     }
@@ -94,6 +95,7 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
         [/INST]
         """
         answer_question_response = llm.generate(answer_question_prompt)
+        json_data["status"] = "info"
         json_data["general_answer"] = answer_question_response
     else:
         #response bot
@@ -110,6 +112,7 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
         """
         general_answer = llm.generate(general_response_prompt)
         json_data["general_answer"] = general_answer
+        json_data["status"] = "warning"
 
         if documents:
             for document in documents:
@@ -136,6 +139,9 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
                     document.metadata.get('url', '---'),
                     json_data
                 )
+            json_data["status"] = "success"
+
+
     answer=json.dumps(json_data, ensure_ascii=False,  indent=4)
     logger.info(f"answers: {answer}")
 
