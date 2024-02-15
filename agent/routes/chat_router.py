@@ -2,7 +2,7 @@ from typing import Optional
 import uuid
 import time
 import os
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Query
 from ..data_model.chatbot_model import ChatMessage, Conversation, MessageType, ConversationType
 import agent.data_model.response_model as Response
 from loguru import logger
@@ -44,10 +44,12 @@ def read_root() -> str:
 
 
 @chat_router.post("/chat")
-async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conversation] = None) -> ChatMessage:
+async def chat_with_bot(chat_message: ChatMessage,
+    use_llm: bool = Query(False, description="A flag indicating whether to generate responses using LLM")
+) -> ChatMessage:
     # Check if conversation exists
     conversation = get_chat_by_conversation_id(chat_message.conversationId)
-    
+
     # Convert ChatMessage to a dict format to append to history
     message_dict = chat_message.dict()
     message_dict["correlationId"] = str(uuid.uuid4())
@@ -77,74 +79,63 @@ async def chat_with_bot(chat_message: ChatMessage, conversation: Optional[Conver
 	NO, French
     [/INST]
     """
-    analyize_question_response = llm.generate(analyize_question_prompt)
-    
-    language = detect_language(analyize_question_response)
+    analyze_question_response = llm.generate(
+        analyize_question_prompt) if use_llm else ""
 
     # Create an empty structure
     json_data = {
-        "status": "",
         "general_answer": "",
         "solutions": []
     }
 
-    if not check_for_yes(analyize_question_response):
+    amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
+    documents = document_service.search_documents(query=message_dict["message"], amount=amount)
 
-        answer_question_prompt = f"""[INST] You are a helpful chat assistant. Answer to the provided TEXT in {language} without any explainations!
-        TEXT: {message_dict["message"]}
-        [/INST]
-        """
-        answer_question_response = llm.generate(answer_question_prompt)
-        json_data["status"] = "info"
-        json_data["general_answer"] = answer_question_response
+    if use_llm:
+        language = detect_language(analyze_question_response)
+        if not check_for_yes(analyze_question_response):
+            answer_question_prompt = f"""[INST] You are a helpful chat assistant. Answer to the provided TEXT in {language} without any explainations!
+            TEXT: {message_dict["message"]}
+            [/INST]
+            """
+            answer_question_response = llm.generate(answer_question_prompt)
+            json_data["general_answer"] = answer_question_response
+        else:
+            length_of_documents = len(documents) if documents is not None else 0
+            general_response_prompt = f"""[INST] You are a helpful chat assistant. Tell in {language} that you found {length_of_documents} answers for the provided TEXT without any explainations and with one short sentence maximum!
+            TEXT: {message_dict["message"]}
+            [/INST]
+            """
+            general_answer = llm.generate(general_response_prompt)
+            json_data["general_answer"] = general_answer
     else:
-        #response bot
-        amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
-        documents = document_service.search_documents(query=message_dict["message"], amount=amount)
+        json_data["general_answer"] = "Ich habe folgende mögliche Lösungen gefunden: \n\n"
 
+    if documents:
+        for document in documents:
+            logger.info(f"document: {document}")
 
-        
-        length_of_documents = len(documents) if documents is not None else 0
-
-        general_response_prompt = f"""[INST] You are a helpful chat assistant. Tell in {language} that you found {length_of_documents} answers for the provided TEXT without any explainations and with one short sentence maximum!
-        TEXT: {message_dict["message"]}
-        [/INST]
-        """
-        general_answer = llm.generate(general_response_prompt)
-        json_data["general_answer"] = general_answer
-        json_data["status"] = "warning"
-
-        if documents:
-            for document in documents:
-                chatCompletionArrCopy = copy.deepcopy(chatCompletionArr)        
-                logger.info(f"document: {document}")
-                
-                
-                #llm_response, meta_data = llm.chat(query=message_dict["message"], documents=[document], conversation_type=conversation["conversationType"], messages=chatCompletionArrCopy)
-
+            if use_llm:
                 #prompt = f"""[INST] I have the following TEXT *** {document.page_content} *** \n Please summarize this TEXT with maximum 3 sentences in the same language without any explainations. [/INST]"""
                 prompt = f"""[INST] You are a helpful CONTENT summarization assistant. Your task is to generate a summarization text in {language} of the provided CONTENT :
                 CONTENT: {document.page_content}
-
+    
                 Just generate the summarization without explanations.
                 [/INST] """
-                
-                llm_response = llm.generate(prompt)
+                summary = llm.generate(prompt)
+            else:
+                summary = ""
 
-                # Add the first solution
-                add_solution(
-                    document.metadata.get('title', '---'),
-                    document.metadata.get('images', '[]'),
-                    llm_response,
-                    document.metadata.get('url', '---'),
-                    json_data
-                )
-            json_data["status"] = "success"
-
-
-    answer=json.dumps(json_data, ensure_ascii=False,  indent=4)
+            # Add the first solution
+            add_solution(
+                document.metadata.get('title', '---'),
+                document.metadata.get('images', '[]'),
+                summary,
+                document.metadata.get('url', '---'),
+                json_data
+            )
+    answer = json.dumps(json_data, ensure_ascii=False,  indent=4)
     logger.info(f"answers: {answer}")
-
 
     bot_response = ChatMessage(conversationId=chat_message.conversationId, correlationId=message_dict["correlationId"], message=answer, type=MessageType.ASSISTANT, creationDate=int(time.time()))
     conversation["history"].append(bot_response)
