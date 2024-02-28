@@ -2,21 +2,24 @@ import os
 import zipfile
 import copy
 import requests
+from flashrank import Ranker
 from omegaconf import DictConfig
 from agent.utils.configuration import load_config
 from agent.utils.utility import replace_multiple_whitespaces
-from agent.utils.utility import extract_procedures_from_issue, get_issueid_score_dict
+from agent.utils.utility import extract_procedures_from_issue, get_issueid_score_dict, search_documents_in_list, get_issueid_dict
 from loguru import logger
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
-from langchain.document_transformers import EmbeddingsRedundantFilter
+from langchain.retrievers.document_compressors import FlashrankRerank
+
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain.docstore.document import Document
-from langchain.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader
+from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from typing import List, Optional, Tuple
-from langchain.embeddings import SentenceTransformerEmbeddings
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 from dotenv import load_dotenv
 from agent.backend.qdrant_service import get_db_connection
 from qdrant_client.http import models as qdrant_models
@@ -30,7 +33,7 @@ QDRANT_URL = os.getenv('QDRANT_URL')
 QDRANT_PORT = os.getenv('QDRANT_PORT')
 SCORE_THREASHOLD = os.getenv('SCORE_THREASHOLD', .7)
 IMAGES_LOCATION = os.getenv('IMAGES_LOCATION')
-
+AMOUNT_SIMILARITY_SEARCH_RESULTS = os.getenv('AMOUNT_SIMILARITY_SEARCH_RESULTS')
 
 
 class DocumentService():
@@ -158,7 +161,7 @@ class DocumentService():
         logger.info("SUCCESS: Text embedded.")
 
 
-    def search_documents(self, query: str, amount: int) -> List[Tuple[Document, float]]:
+    def search_documents(self, query: str) -> List[Tuple[Document, float]]:
         """Searches the documents in the Qdrant DB with a specific query.
 
         Args:
@@ -168,22 +171,58 @@ class DocumentService():
             List[Tuple[Document, float]]: A list of search results, where each result is a tuple
             containing a Document object and a float score.
         """
-        docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=SCORE_THREASHOLD)
-        logger.debug(f"\nNumber of documents: {len(docs)}")
+        amount = int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
+        docs_with_score = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=SCORE_THREASHOLD)
+        logger.debug(f"\nNumber of documents: {len(docs_with_score)}")
 
-        if docs is not None and len(docs) > 0:
+        if docs_with_score is not None and len(docs_with_score) > 0:
             logger.debug("SUCCESS: Documents found after similarity_search_with_score.")
 
-            # Extract issueIds with its highes score
-            score_issueIds = get_issueid_score_dict(docs)
+            if ACTIVATE_RERANKER == "True":
+                # Extract documents from the list of tuples i am not interessted in the scores anymore
+                docs = [document for document, score in docs_with_score]
+
+                logger.info(f"reranking ...")
+                embedding = self.embedding_model
+                
+                retriever = self.vector_store.from_documents(docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
+                ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
+                rerank_compressor = FlashrankRerank(client= ranker, model="ms-marco-MultiBERT-L-12", top_n = 3)
+                #rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
+                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
+                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
+                relevant_filter = EmbeddingsFilter(embeddings=embedding, similarity_threshold=float(SCORE_THREASHOLD))
+                pipeline_compressor = DocumentCompressorPipeline(
+                    transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
+                )
+                compression_retriever1 = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
+                docs = compression_retriever1.get_relevant_documents(query)
+
+#                for document in docs:
+#                    logger.info(f"Context after reranking: {replace_multiple_whitespaces(document.page_content)}")
+
+                #Delete the temporary qdrant collection which is used for the base retriever
+                url = f"{QDRANT_URL}:{QDRANT_PORT}/collections/temp_ollama"
+                headers = {"Content-Type": "application/json", "api-key": QDRANT_API_KEY}
+                requests.delete(url, headers=headers)
+
+#                logger.info(f"documents with score: {docs_with_score}")
+
+                logger.info(f"rerank document: {docs}")
 
 
-            for element in docs:
-                document, score = element
-                logger.debug(f"\n Document found with score: {score}")
-                logger.debug(replace_multiple_whitespaces(document.page_content))
-                logger.debug(document.metadata)
 
+                reranked_docs = search_documents_in_list(docs_with_score,docs)
+
+
+                score_issueIds = get_issueid_dict(reranked_docs)
+
+            else:
+                # Extract issueIds with its highes score
+                score_issueIds = get_issueid_score_dict(docs_with_score)
+
+
+            #find documents by its issueId
             retriever = self.vector_store.as_retriever(
                 search_type="similarity",
                 search_kwargs={
@@ -202,36 +241,13 @@ class DocumentService():
                 "k": 3})
 
 
-            filtered_docs = retriever.get_relevant_documents(query)
-            logger.debug(f"\n {len(filtered_docs)} filtered documents found")
-            logger.info(f"Filtered docs {filtered_docs} ")
+            issue_docs = retriever.get_relevant_documents(query)
+            logger.debug(f"\n {len(issue_docs)} filtered documents found")
+            logger.info(f"Filtered docs {issue_docs} ")
 
-            if ACTIVATE_RERANKER == "True":
-                embedding = self.embedding_model
-                
-                retriever = self.vector_store.from_documents(filtered_docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
-
-                rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
-                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
-                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
-                relevant_filter = EmbeddingsFilter(embeddings=embedding)
-                pipeline_compressor = DocumentCompressorPipeline(
-                    transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
-                )
-                compression_retriever1 = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
-                compressed_docs = compression_retriever1.get_relevant_documents(query)
-
-                for docu in compressed_docs:
-                    logger.info(f"Context after reranking: {replace_multiple_whitespaces(docu.page_content)}")
-
-                #Delete the temporary qdrant collection which is used for the base retriever
-                url = f"{QDRANT_URL}:{QDRANT_PORT}/collections/temp_ollama"
-                headers = {"Content-Type": "application/json", "api-key": QDRANT_API_KEY}
-                requests.delete(url, headers=headers)
-
-                return compressed_docs
-            else:
-                #Logic for none-reranking needs to be implemented here
-                #filtered_docs = [t[0] for t in docs]
-                return filtered_docs
+            #Logic for none-reranking needs to be implemented here
+            #filtered_docs = [t[0] for t in docs]
+            return issue_docs
+        
+        
         return None

@@ -88,8 +88,7 @@ async def chat_with_bot(chat_message: ChatMessage,
         "solutions": []
     }
 
-    amount=int(os.getenv("AMOUNT_SIMILARITY_SEARCH_RESULTS","10"))
-    documents = document_service.search_documents(query=message_dict["message"], amount=amount)
+    documents = document_service.search_documents(query=message_dict["message"])
 
     if use_llm:
         language = detect_language(analyze_question_response)

@@ -190,6 +190,68 @@ def extract_procedures_from_issue(documents, IMAGES_LOCATION):
     return transformed_documents
 
 
+
+def search_documents_in_list(first_list, second_list):
+    # Create a dictionary mapping page_content to relevance_score from the second list
+    second_dict = {doc.page_content: doc.metadata['relevance_score'] for doc in second_list}
+    
+    # Initialize a list to store matching documents from the first list
+    matching_documents = []
+    
+    # Iterate through the first list
+    for doc, score in first_list:
+        # Check if the document's page_content exists in the second list
+        if doc.page_content in second_dict:
+            # Append the document with its relevance score from the second list, overriding the score
+            matching_documents.append((doc, second_dict[doc.page_content]))
+            
+            # If all elements from the second list have been matched, break the loop
+            if len(matching_documents) == len(second_list):
+                break
+    
+    return matching_documents
+
+
+
+def get_issueid_dict(documents):
+    score_dict = {}
+
+    # Loop through the list and update the dictionary with the highest score for each ID
+
+    if documents is not None and len(documents) > 0:
+        for element in documents:
+            document, score = element
+        
+            current_id = document.metadata.get('issueId', '')
+            current_score = score
+
+            # Check if the ID is already in the dictionary
+            if current_id in score_dict:
+                # Update the score if the current score is higher
+                if current_score > score_dict[current_id]:
+                    score_dict[current_id] = current_score
+            else:
+                # Add the ID to the dictionary if not present
+                score_dict[current_id] = current_score
+
+    logger.info(f"SCORED_DICT {score_dict}.")
+
+
+    # Sort the dictionary items based on scores
+    sorted_items = sorted(score_dict.items(), key=lambda x: x[1], reverse=True)
+
+    
+    # Iterate through the sorted items to remove IDs with a too high difference compared to the top score
+    filtered_dict = {}
+
+    for current_id, current_score in sorted_items:
+         filtered_dict[current_id] = current_score
+    
+    return filtered_dict
+
+
+
+
 def get_issueid_score_dict(documents):
     score_dict = {}
 

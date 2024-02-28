@@ -9,7 +9,7 @@ from agent.utils.utility import generate_prompt
 from langchain.docstore.document import Document as LangchainDocument
 from agent.utils.utility import replace_multiple_whitespaces
 from langchain.schema import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain.chat_models import ChatOllama
+from langchain_community.chat_models import ChatOllama
 from agent.backend.llm_services.LLM import BaseLLM  
 
 

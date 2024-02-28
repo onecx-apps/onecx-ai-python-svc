@@ -1,7 +1,7 @@
 import os
-from langchain.vectorstores import Qdrant
+from langchain_community.vectorstores import Qdrant
 from langchain.schema.embeddings import Embeddings
-from qdrant_client import QdrantClient, models
+from qdrant_client import QdrantClient , models
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -22,7 +22,7 @@ def get_db_connection(embedding_model: Embeddings) -> Qdrant:
     """
     embedding = embedding_model
 
-    qdrant_client = QdrantClient(url=QDRANT_URL, port=QDRANT_PORT, api_key=QDRANT_API_KEY, prefer_grpc=False)
+    qdrant_client = QdrantClient (url=QDRANT_URL, port=QDRANT_PORT, api_key=QDRANT_API_KEY, prefer_grpc=False)
     try: 
         qdrant_client.get_collection(QDRANT_COLLECTION_NAME)
     except Exception:
