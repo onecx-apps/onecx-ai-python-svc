@@ -220,7 +220,9 @@ class DocumentService():
                 
                 retriever = self.vector_store.from_documents(docs, embedding, api_key=QDRANT_API_KEY, url=QDRANT_URL, collection_name="temp_ollama").as_retriever()
                 ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
-                rerank_compressor = FlashrankRerank(client= ranker, model="ms-marco-MultiBERT-L-12", top_n = 3)
+                #ranker = Ranker(model_name="rank-T5-flan")
+                
+                rerank_compressor = FlashrankRerank(client= ranker, top_n = 3)
                 #rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
 #                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
 #                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
@@ -230,7 +232,7 @@ class DocumentService():
 #                )
 
                 pipeline_compressor = DocumentCompressorPipeline(
-                    transformers=[relevant_filter, rerank_compressor]
+                    transformers=[rerank_compressor, relevant_filter]
                 )
                 compression_retriever1 = ContextualCompressionRetriever(base_compressor=pipeline_compressor, base_retriever=retriever)
                 reranked_docs = compression_retriever1.get_relevant_documents(query)
