@@ -6,7 +6,7 @@ from flashrank import Ranker
 from omegaconf import DictConfig
 from agent.utils.configuration import load_config
 from agent.utils.utility import replace_multiple_whitespaces
-from agent.utils.utility import extract_procedures_from_issue, get_issueid_score_dict, search_documents_in_list, get_issueid_dict
+from agent.utils.utility import extract_procedures_from_issue, get_issueid_score_dict, get_issueid_dict
 from loguru import logger
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
@@ -23,6 +23,9 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from dotenv import load_dotenv
 from agent.backend.qdrant_service import get_db_connection
 from qdrant_client.http import models as qdrant_models
+from typing import TYPE_CHECKING, Dict, Optional, Sequence
+from langchain.callbacks.manager import Callbacks
+from flashrank import Ranker, RerankRequest
 
 load_dotenv()
 
@@ -34,6 +37,36 @@ QDRANT_PORT = os.getenv('QDRANT_PORT')
 SCORE_THREASHOLD = os.getenv('SCORE_THREASHOLD', .7)
 IMAGES_LOCATION = os.getenv('IMAGES_LOCATION')
 AMOUNT_SIMILARITY_SEARCH_RESULTS = os.getenv('AMOUNT_SIMILARITY_SEARCH_RESULTS')
+
+#overwrite FlashrankRerank compress_documents to keep metadata of original documents
+def compress_documents(
+    self,
+    documents: Sequence[Document],
+    query: str,
+    callbacks: Optional[Callbacks] = None,
+) -> Sequence[Document]:
+    passages = [
+        {"id": i, "text": doc.page_content} for i, doc in enumerate(documents)
+    ]
+
+    rerank_request = RerankRequest(query=query, passages=passages)
+    rerank_response = self.client.rerank(rerank_request)[: self.top_n]
+    final_results = []
+    for r in rerank_response:
+        doc_index = r["id"]
+        original_doc = documents[doc_index]
+        
+        metadata = {"id": r["id"], "relevance_score": r["score"]}
+        metadata.update(original_doc.metadata)  # Merge metadata from original document
+        
+        doc = Document(
+            page_content=r["text"],
+            metadata=metadata,
+        )
+        final_results.append(doc)
+    return final_results
+
+FlashrankRerank.compress_documents=compress_documents
 
 
 class DocumentService():
@@ -189,14 +222,18 @@ class DocumentService():
                 ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
                 rerank_compressor = FlashrankRerank(client= ranker, model="ms-marco-MultiBERT-L-12", top_n = 3)
                 #rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
-                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
-                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
+#                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
+#                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
                 relevant_filter = EmbeddingsFilter(embeddings=embedding, similarity_threshold=float(SCORE_THREASHOLD))
+#                pipeline_compressor = DocumentCompressorPipeline(
+#                    transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
+#                )
+
                 pipeline_compressor = DocumentCompressorPipeline(
-                    transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
+                    transformers=[relevant_filter, rerank_compressor]
                 )
-                compression_retriever1 = ContextualCompressionRetriever(base_compressor=rerank_compressor, base_retriever=retriever)
-                docs = compression_retriever1.get_relevant_documents(query)
+                compression_retriever1 = ContextualCompressionRetriever(base_compressor=pipeline_compressor, base_retriever=retriever)
+                reranked_docs = compression_retriever1.get_relevant_documents(query)
 
 #                for document in docs:
 #                    logger.info(f"Context after reranking: {replace_multiple_whitespaces(document.page_content)}")
@@ -206,13 +243,7 @@ class DocumentService():
                 headers = {"Content-Type": "application/json", "api-key": QDRANT_API_KEY}
                 requests.delete(url, headers=headers)
 
-#                logger.info(f"documents with score: {docs_with_score}")
-
-                logger.info(f"rerank document: {docs}")
-
-
-
-                reranked_docs = search_documents_in_list(docs_with_score,docs)
+                logger.info(f"rerank document: {reranked_docs}")
 
 
                 score_issueIds = get_issueid_dict(reranked_docs)
