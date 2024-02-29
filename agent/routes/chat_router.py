@@ -10,6 +10,7 @@ from agent.dependencies import document_service, llm
 from agent.utils.utility import add_solution, check_for_yes, detect_language
 import copy
 import json
+import torch
 
 chat_router = APIRouter(tags=["chat"])
 chatConversationMemory = []
@@ -45,7 +46,7 @@ def read_root() -> str:
 
 @chat_router.post("/chat")
 async def chat_with_bot(chat_message: ChatMessage,
-    use_llm: bool = Query(False, description="A flag indicating whether to generate responses using LLM")
+    use_llm: bool = Query(True, description="A flag indicating whether to generate responses using LLM")
 ) -> ChatMessage:
     # Check if conversation exists
     conversation = get_chat_by_conversation_id(chat_message.conversationId)
@@ -154,6 +155,11 @@ async def get_conversation(conversationId: str) -> Conversation:
 
 @chat_router.post("/startConversation")
 async def start_conversation(conversation_type: str = Body(..., embed=True)) -> Conversation:
+    
+    #might fix CUDA out of memory
+    torch.cuda.empty_cache()
+
+    
     conversation_id_uuid = str(uuid.uuid4())
     start_conversation = []
     if conversation_type == "Q_AND_A":
