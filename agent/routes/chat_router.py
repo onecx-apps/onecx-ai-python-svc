@@ -82,28 +82,3 @@ async def get_conversation(conversationId: str) -> Conversation:
     else:
         return conversation
 
-@chat_router.post("/startConversation")
-async def start_conversation(conversation_type: str = Body(..., embed=True)) -> Conversation:
-    conversation_id_uuid = str(uuid.uuid4())
-    start_conversation = []
-    if conversation_type == "Q_AND_A":
-        iniialSystemMessage = ChatMessage(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
-        start_conversation.append(iniialSystemMessage)
-
-        #If you want to add a welcome message into the message history enable the following:
-        #welcomeMessage= ChatMessage(conversationId=conversation_id_uuid, correlationId="Welcome Message", message="Hallo ich bin dein Asisstent für heute! Was möchtest du wissen?(Q&A)", type=MessageType.ASSISTANT, creationDate=int(time.time()))
-        #start_conversation.append(welcomeMessage)
-
-    else:
-        #Different system messages for each conversation type can be implemented here. E.g.: channeling.
-        iniialSystemMessage = ChatMessage(conversationId=conversation_id_uuid, correlationId="System Message", message=os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'"), type=MessageType.SYSTEM, creationDate=int(time.time()))
-        start_conversation.append(iniialSystemMessage)
-
-    chatConversationMemory.append({"conversationId": conversation_id_uuid, "history": start_conversation, "conversationType": conversation_type})
-
-    conversation = get_chat_by_conversation_id(conversation_id_uuid)
-    
-    if  conversation == None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    else:
-        return conversation
