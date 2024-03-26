@@ -114,3 +114,28 @@ Then save the conversation-ID and paste it into the next request to the endpoint
 - [ ] Finding a solid open source reranker alternative to cohere
 - [ ] Implement other document importers to receive data from e.g. confluence or scraping data from websites
 
+
+
+
+{
+  "chat_message": {
+    "conversationId": "string",
+    "correlationId": "string",
+    "message": "Tell me a joke",
+    "type": "user",
+    "creationDate": 0
+  },
+  "conversation": {
+    "conversationId": "string",
+    "history": [
+      {
+        "conversationId": "string",
+        "correlationId": "string",
+        "message": "Talk like luigi",
+        "type": "system",
+        "creationDate": 0
+      }
+    ],
+    "conversationType": "Q_AND_A"
+  }
+}

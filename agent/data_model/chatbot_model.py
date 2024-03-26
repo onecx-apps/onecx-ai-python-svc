@@ -12,12 +12,10 @@ class MessageType(str, Enum):
     SYSTEM = "system"
 
 class ConversationType(str, Enum):
-    CHANNELING = "CHANNELING"
     Q_AND_A = "Q_AND_A"
 
 class ChatMessage(BaseModel):
     conversationId: str = Field(None, title="conversationId", description="The unique id for the whole user converstation.")
-    correlationId: str = Field(None, title="correlationId", description="The unique id for vorrelating messages.")
     message: str = Field(None, description="the message", max_length=10000)
     type: MessageType = Field(None, description="The enum message type")
     creationDate: int = Field(None, description="The timestamp in milliseconds")

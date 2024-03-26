@@ -1,19 +1,17 @@
 import os
 import requests
-from omegaconf import DictConfig
-from agent.utils.configuration import load_config
 from agent.utils.utility import replace_multiple_whitespaces
 from loguru import logger
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
-from langchain.document_transformers import EmbeddingsRedundantFilter
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain.docstore.document import Document
-from langchain.document_loaders import DirectoryLoader, PyPDFLoader
+from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from typing import List, Optional, Tuple
-from langchain.embeddings import SentenceTransformerEmbeddings
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 from dotenv import load_dotenv
 from agent.backend.qdrant_service import get_db_connection
 
@@ -24,7 +22,8 @@ ACTIVATE_RERANKER = os.getenv('ACTIVATE_RERANKER')
 QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
 QDRANT_URL = os.getenv('QDRANT_URL')
 QDRANT_PORT = os.getenv('QDRANT_PORT')
-
+AMOUNT_SIMILARITY_SEARCH_RESULTS = os.getenv('AMOUNT_SIMILARITY_SEARCH_RESULTS', 10)
+SCORE_THREASHOLD = os.getenv('SCORE_THREASHOLD', 0.7)
 class DocumentService():
     def __init__(self):
         self.embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
@@ -127,7 +126,7 @@ class DocumentService():
 
         logger.info("SUCCESS: Text embedded.")
             
-    def search_documents(self, query: str, amount: int) -> List[Tuple[Document, float]]:
+    def search_documents(self, query: str) -> List[Tuple[Document, float]]:
         """Searches the documents in the Qdrant DB with a specific query.
 
         Args:
@@ -137,7 +136,10 @@ class DocumentService():
             List[Tuple[Document, float]]: A list of search results, where each result is a tuple
             containing a Document object and a float score.
         """
-        docs = self.vector_store.similarity_search_with_score(query, k=amount, score_threshold=.7)
+
+
+
+        docs = self.vector_store.similarity_search_with_score(query, k=int(AMOUNT_SIMILARITY_SEARCH_RESULTS), score_threshold=float(SCORE_THREASHOLD))
 
         logger.debug(f"\nNumber of documents: {len(docs)}")
 

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from loguru import logger
 from agent.backend.document_service import DocumentService
-from .routes import chat_router, document_router
+from .routes import chat_router
 
 # add file logger for loguru
 logger.add("logs/file_{time}.log", backtrace=False, diagnose=False)
@@ -18,7 +18,6 @@ logger.info("Loading REST API Finished.")
 
 # Include Routers
 app.include_router(chat_router.chat_router)
-app.include_router(document_router.document_router)
 
 @app.get("/")
 def read_root() -> str:

@@ -1,5 +1,5 @@
 import os
-from langchain.vectorstores import Qdrant
+from langchain_community.vectorstores import Qdrant
 from langchain.schema.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
 from loguru import logger

@@ -33,53 +33,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatMessage'
-  /conversation/{conversationId}:
-    get:
-      tags:
-        - aiChat      
-      operationId: getConversation
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Conversation'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              example:
-                error: "Conversation not found"                
-  /startConversation:
-    post:
-      tags:
-        - aiChat      
-      operationId: startConversation
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                conversation_type:
-                  type: string
-              required:
-                - conversation_type
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Conversation'
   /uploadDocuments/{conversationId}:
     post:
       tags:
@@ -109,8 +62,6 @@ components:
       properties:
         conversationId:
           type: string
-        correlationId:
-          type: string
         message:
           type: string
           maxLength: 10000
@@ -133,7 +84,7 @@ components:
             $ref: '#/components/schemas/ChatMessage'
         conversationType:
           type: string
-          enum: [CHANNELING, Q_AND_A]
+          enum: [Q_AND_A]
     Document:
       type: object
       properties:
