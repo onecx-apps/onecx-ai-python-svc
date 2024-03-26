@@ -15,7 +15,8 @@ def convert_messages(conversation: Conversation) -> List[Dict[str, str]]:
         role = chat_message.type.value
         content = chat_message.message
         messages.append({'role': role, 'content': content})
-    return messages[0] if messages else []
+
+    return messages
 
 
 def convert_message(query: str, context: str) -> Dict[str, str]:

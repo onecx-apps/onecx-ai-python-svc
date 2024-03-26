@@ -55,10 +55,12 @@ class OllamaLLM(BaseLLM):
 
             # use the query and the found document texts and create a message with question and context
             message = convert_message(query, text)
-            messages.append(message)
+            messages[0].append(message)
+
+            logger.debug(f"Message history: {messages}")
 
             llm_response = client.chat(model=ollama_model, 
-                messages=messages,
+                messages=messages[0],
                 stream=False,
             )
 

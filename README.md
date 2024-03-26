@@ -116,21 +116,31 @@ Then save the conversation-ID and paste it into the next request to the endpoint
 
 
 
-
+## Sample request for chat
 {
   "chat_message": {
-    "conversationId": "string",
-    "correlationId": "string",
-    "message": "Tell me a joke",
+    "conversationId": "12345",
+    "message": "Another one please!",
     "type": "user",
     "creationDate": 0
   },
   "conversation": {
-    "conversationId": "string",
+    "conversationId": "12345",
     "history": [
       {
-        "conversationId": "string",
-        "correlationId": "string",
+        "conversationId": "12345",
+        "message": "Why don't scientists trust atoms?\nBecause they make up everything!",
+        "type": "assistant",
+        "creationDate": 0
+      },
+      {
+        "conversationId": "12345",
+        "message": "Tell me a joke",
+        "type": "user",
+        "creationDate": 0
+      },
+      {
+        "conversationId": "12345",
         "message": "Talk like luigi",
         "type": "system",
         "creationDate": 0
