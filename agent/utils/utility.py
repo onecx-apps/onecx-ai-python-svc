@@ -18,6 +18,11 @@ def convert_messages(conversation: Conversation) -> List[Dict[str, str]]:
 
     return messages
 
+def create_message(role: str, query: str) -> Dict[str, str]:
+    role = "system"
+    message = {'role': role, 'content': query}
+    return message
+
 
 def convert_message(query: str, context: str) -> Dict[str, str]:
     
@@ -46,6 +51,31 @@ def replace_multiple_whitespaces(text):
     cleaned_text = re.sub(r'\s+', ' ', text)
     return cleaned_text
 
+def detect_language(text):
+    text = text.lower()
+
+    if 'german' in text or 'deutsch' in text:
+        return 'German'
+    elif 'english' in text or 'englisch' in text:
+        return 'English'
+    elif 'french' in text or 'französisch' in text:
+        return 'French'
+    elif 'italian' in text or 'italienisch' in text:
+        return 'Italian'
+    elif 'spanish' in text or 'spanisch' in text:
+        return 'Spanish'
+    else:
+        return 'English'
+
+def check_for_yes(input_string):
+    # Define a regular expression pattern to match variations of "yes"
+    yes_pattern = re.compile(r'\b(?:yes|ja)\b', re.IGNORECASE)
+
+    # Use re.search to check if the pattern is present in the input string
+    match = re.search(yes_pattern, input_string)
+
+    # Return True if a match is found, otherwise return False
+    return bool(match)
 
 if __name__ == "__main__":
     # test the function

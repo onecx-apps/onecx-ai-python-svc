@@ -116,7 +116,7 @@ Then save the conversation-ID and paste it into the next request to the endpoint
 
 
 
-## Sample request for chat
+## Sample requests for chat with history
 {
   "chat_message": {
     "conversationId": "12345",
@@ -142,6 +142,28 @@ Then save the conversation-ID and paste it into the next request to the endpoint
       {
         "conversationId": "12345",
         "message": "Talk like luigi",
+        "type": "system",
+        "creationDate": 0
+      }
+    ],
+    "conversationType": "Q_AND_A"
+  }
+}
+
+
+{
+  "chat_message": {
+    "conversationId": "12345",
+    "message": "Ich habe keine Internetverbindung.",
+    "type": "user",
+    "creationDate": 0
+  },
+  "conversation": {
+    "conversationId": "12345",
+    "history": [
+      {
+        "conversationId": "12345",
+        "message": "You are an assistant to support about technical problems. You use the provided CONTEXT to answer the question.",
         "type": "system",
         "creationDate": 0
       }

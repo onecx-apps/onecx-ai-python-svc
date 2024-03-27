@@ -20,13 +20,13 @@ OLLAMA_PORT = os.getenv("OLLAMA_PORT")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mixtral")
 OLLAMA_MODEL_VERSION = os.getenv('OLLAMA_MODEL_VERSION')
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
-Q_AND_A_SYS_MSG = os.getenv("Q_A_SYSTEM_MESSAGE",default="Du bist ein ehrlicher, respektvoller und ehrlicher Assistent. Zur Beantwortung der Frage nutzt du nur den Text, welcher zwischen <INPUT> und </INPUT> steht! Findest du keine Informationen im bereitgestellten Text, so antwortest du mit 'Ich habe dazu keine Informationen'")
+
+ollama_model = f"{OLLAMA_MODEL}:{OLLAMA_MODEL_VERSION}" if OLLAMA_MODEL_VERSION else OLLAMA_MODEL
 
 
 class OllamaLLM(BaseLLM):
     def __init__(self):
-        self.q_and_a_system_message = Q_AND_A_SYS_MSG
-            
+        pass
 
     def chat(self, documents: list[tuple[LangchainDocument, float]], messages: any, query: str) -> Tuple[str, Union[Dict[Any, Any], List[Dict[Any, Any]]]]:
         """Takes a list of documents and returns a list of answers.
@@ -50,7 +50,7 @@ class OllamaLLM(BaseLLM):
             # fills the prompt, sends a request and returns the response
             #answer = self.send_chat_completion(text=text, query=query, conversation_type=conversation_type, messages=messages)
 
-            ollama_model = f"{OLLAMA_MODEL}:{OLLAMA_MODEL_VERSION}" if OLLAMA_MODEL_VERSION else OLLAMA_MODEL
+            
 
 
             # use the query and the found document texts and create a message with question and context
@@ -76,6 +76,31 @@ class OllamaLLM(BaseLLM):
         return answer, meta_data
 
 
+    def generate(self, text: str) -> str:
+        """Takes a text.
 
+        Args:
+            text (str): The text to use for generation.
+
+        Returns:
+            result (str)
+        """
+        result=""
+        
+        try:
+            # fills the prompt, sends a request and returns the response
+            llm_response = client.generate(model=ollama_model, 
+                prompt=text,
+                stream=False,
+            )
+            answer = llm_response['response']
+
+        except ValueError as e:
+            logger.error("Error found:")
+            logger.error(e)
+            result = "Error while processing the generation"
+        logger.debug(f"LLM response: {answer}")
+        
+        return answer
 
 

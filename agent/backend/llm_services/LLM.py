@@ -19,4 +19,6 @@ class BaseLLM(ABC):
         """
         pass
 
-
+    @abstractmethod
+    def generate(self, prompt: str) -> str:
+        pass
