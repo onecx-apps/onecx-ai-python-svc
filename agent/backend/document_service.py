@@ -219,16 +219,15 @@ class DocumentService():
                 #ranker = Ranker(model_name="rank-T5-flan")
                 
                 rerank_compressor = FlashrankRerank(client= ranker, top_n = 3)
-                #rerank_compressor = CohereRerank(user_agent="my-app", model="rerank-multilingual-v2.0", top_n=3)
-                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=120, chunk_overlap=20)
+                splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", ". ", "; ", "! ", "? ", "# "],chunk_size=256, chunk_overlap=25)
 #                redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
-                relevant_filter = EmbeddingsFilter(embeddings=embedding, similarity_threshold=float(SCORE_THREASHOLD))
+#                relevant_filter = EmbeddingsFilter(embeddings=embedding, similarity_threshold=float(SCORE_THREASHOLD))
 #                pipeline_compressor = DocumentCompressorPipeline(
 #                    transformers=[splitter, redundant_filter, relevant_filter, rerank_compressor]
 #                )
 
                 pipeline_compressor = DocumentCompressorPipeline(
-                    transformers=[splitter, relevant_filter, rerank_compressor]
+                    transformers=[splitter, rerank_compressor]
                 )
                 compression_retriever1 = ContextualCompressionRetriever(base_compressor=pipeline_compressor, base_retriever=retriever)
                 reranked_docs = compression_retriever1.get_relevant_documents(query)

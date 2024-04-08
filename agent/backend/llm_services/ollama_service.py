@@ -10,8 +10,6 @@ from agent.backend.llm_services.LLM import BaseLLM
 import ollama
 from ollama import Client
 
-client = Client(host='http://ollama.one-cx.org')
-
 
 load_dotenv()
 
@@ -19,7 +17,11 @@ OLLAMA_URL = os.getenv("OLLAMA_URL")
 OLLAMA_PORT = os.getenv("OLLAMA_PORT")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mixtral")
 OLLAMA_MODEL_VERSION = os.getenv('OLLAMA_MODEL_VERSION')
+OLLAMA_API_KEY = os.getenv('OLLAMA_API_KEY')
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+
+client = Client(host=OLLAMA_URL, auth=("API_KEY", OLLAMA_API_KEY))
+
 
 ollama_model = f"{OLLAMA_MODEL}:{OLLAMA_MODEL_VERSION}" if OLLAMA_MODEL_VERSION else OLLAMA_MODEL
 
