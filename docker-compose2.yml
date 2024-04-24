@@ -1,0 +1,30 @@
+services:
+  postgresdb:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: admin
+      # POSTGRES_DB: postgres
+      # POSTGRES_USER: postgres
+
+    ports:
+      - "5432:5432"
+    volumes:      
+    - postgres:/var/lib/postgresql/data      
+    - ./db/:/docker-entrypoint-initdb.d/
+
+# onecx-ai-svc:
+#  image: onecx-ai
+# ports:
+#  - "8080:80"
+
+  onecx-chat-svc:
+    image: ghcr.io/onecx-apps/onecx-chat-svc:0.0.0-rc.16
+    environment:
+      QUARKUS_DATASOURCE_USERNAME: onecx_chat   
+      QUARKUS_DATASOURCE_PASSWORD: onecx_chat      
+      QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://postgresdb:5432/onecx-chat?sslmode=disable"
+    depends_on:
+      - postgresdb
+
+volumes:
+  postgres:
