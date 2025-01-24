@@ -45,10 +45,7 @@ def custom_openapi():
                 "name": "document",
                 "description": "All document operations can be found organized under tag **document**"
                }]
-    )
-    openapi_schema["info"]["x-logo"] = {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Capgemini_201x_logo.svg"
-    }
+    )    
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 

@@ -1,8 +1,5 @@
 <br />
 <div align="center">
-  <a href="https://github.com/onecx-apps/onecx-ai-svc">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/9/9d/Capgemini_201x_logo.svg" alt="Logo" width="200px">
-  </a>
 
   <h3 align="center">REST Backend for a Conversational Chat Agent</h3>
 
